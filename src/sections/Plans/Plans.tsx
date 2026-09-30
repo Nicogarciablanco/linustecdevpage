@@ -1,3 +1,4 @@
+import { ArrowRight, Checkmark } from '@carbon/icons-react'
 import {
   Container,
   DisplayHeading,
@@ -40,7 +41,10 @@ export function Plans({
               <p>{plan.audience}</p>
               <ul>
                 {plan.features.map((feature) => (
-                  <li key={feature}>{feature}</li>
+                  <li key={feature}>
+                    <Checkmark size={16} aria-hidden="true" />
+                    <span>{feature}</span>
+                  </li>
                 ))}
               </ul>
               <PlanButton
@@ -52,7 +56,7 @@ export function Plans({
                 }
                 onClick={(event) => onSelect(plan.id, event.currentTarget)}
               >
-                Configurar plan →
+                Configurar plan <ArrowRight size={16} aria-hidden="true" />
               </PlanButton>
             </PlanCard>
           ))}

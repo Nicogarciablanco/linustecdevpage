@@ -58,11 +58,12 @@ export const CloseButton = styled.button`
   flex: 0 0 auto;
   width: 42px;
   height: 42px;
+  display: grid;
+  place-items: center;
   border: 1px solid ${({ theme }) => theme.colors.line};
   border-radius: 50%;
   color: ${({ theme }) => theme.colors.ink};
   background: transparent;
-  font-size: 22px;
 
   @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {
     position: absolute;

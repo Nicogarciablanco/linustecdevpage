@@ -87,12 +87,9 @@ export const RailCursor = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 20px;
   border-radius: 999px;
   background: #f0ff4c;
   color: #000;
-  font-size: 20px;
-  font-weight: 700;
   line-height: 1;
   opacity: 0;
   visibility: hidden;
@@ -144,7 +141,7 @@ export const ProjectCard = styled.article`
     transform: translateY(-3px);
   }
 
-  @media (hover: hover) and (pointer: fine) {
+  [data-cursor-active='true'] & {
     cursor: none;
   }
 
@@ -275,6 +272,9 @@ export const ProjectMeta = styled.div`
 
   a {
     flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     color: ${({ theme }) => theme.colors.ink};
     font-size: 14px;
     font-weight: 800;

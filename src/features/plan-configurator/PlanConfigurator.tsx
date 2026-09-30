@@ -1,3 +1,4 @@
+import { ArrowRight, Close } from '@carbon/icons-react'
 import { useEffect, useRef } from 'react'
 import type { MouseEvent } from 'react'
 import { PrimaryButton } from '../../components/ui/Button'
@@ -72,7 +73,7 @@ export function PlanConfigurator({
             aria-label="Cerrar configurador"
             onClick={onClose}
           >
-            ×
+            <Close size={20} aria-hidden="true" />
           </CloseButton>
         </DialogTop>
         <DialogCopy>{plan.copy}</DialogCopy>
@@ -99,7 +100,7 @@ export function PlanConfigurator({
             confirma antes de iniciar el proyecto.
           </p>
           <PrimaryButton type="button" onClick={onClose}>
-            Guardar selección&nbsp;↗
+            Guardar selección <ArrowRight size={16} aria-hidden="true" />
           </PrimaryButton>
         </DialogBottom>
       </DialogContent>

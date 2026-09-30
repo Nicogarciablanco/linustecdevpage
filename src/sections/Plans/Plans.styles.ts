@@ -58,11 +58,15 @@ export const PlanCard = styled.article<{ $featured: boolean }>`
     font-size: 14px;
     line-height: 1.9;
   }
-  li::before {
-    content: '✓';
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+  }
+  li svg {
+    flex: 0 0 auto;
+    margin-top: 5px;
     color: ${({ theme }) => theme.colors.tealText};
-    margin-right: 9px;
-    font-weight: 800;
   }
   @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
     min-height: 360px;
@@ -75,6 +79,9 @@ export const PlanCard = styled.article<{ $featured: boolean }>`
   }
 `
 export const PlanButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 6px;
   width: 100%;
   margin-top: auto;
   padding: 18px 0 0;

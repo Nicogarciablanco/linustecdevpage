@@ -91,7 +91,7 @@ function setup() {
 }
 function openPlan(index: number) {
   fireEvent.click(
-    screen.getAllByRole('button', { name: 'Configurar plan →' })[index]!,
+    screen.getAllByRole('button', { name: 'Configurar plan' })[index]!,
   )
 }
 
@@ -115,6 +115,13 @@ describe('landing', () => {
   it('keeps one header node and width while CTA accessibility changes', async () => {
     setup()
     const header = document.querySelector('header')!
+    const trigger = document.querySelector<HTMLElement>(
+      'main > div[aria-hidden="true"]',
+    )!
+    let triggerTop = 900
+    vi.spyOn(trigger, 'getBoundingClientRect').mockImplementation(
+      () => ({ top: triggerTop }) as DOMRect,
+    )
     const parent = header.parentElement
     const width = getComputedStyle(header).width
     const actions = header.querySelector('[aria-hidden]')!
@@ -130,9 +137,9 @@ describe('landing', () => {
     expect(headerLinks.every((link) => link.tabIndex === -1)).toBe(true)
     expect(getComputedStyle(actions).visibility).toBe('hidden')
     expect(observerOptions?.rootMargin).toBe('-112px 0px 0px 0px')
-    expect(screen.getAllByRole('link', { name: 'Ver planes ↗' })).toHaveLength(
-      1,
-    )
+    expect(screen.getAllByRole('link', { name: 'Ver planes' })).toHaveLength(1)
+    vi.stubGlobal('scrollY', 800)
+    triggerTop = 104
     act(() =>
       observerCallback(
         [{ boundingClientRect: { top: 104 } } as IntersectionObserverEntry],
@@ -146,9 +153,45 @@ describe('landing', () => {
     expect(actions).toHaveAttribute('aria-hidden', 'false')
     expect(getComputedStyle(actions).visibility).toBe('visible')
     expect(headerLinks.every((link) => link.tabIndex === 0)).toBe(true)
-    expect(screen.getAllByRole('link', { name: 'Ver planes ↗' })).toHaveLength(
-      1,
+    expect(screen.getAllByRole('link', { name: 'Ver planes' })).toHaveLength(1)
+    vi.stubGlobal('scrollY', 0)
+    triggerTop = 900
+    act(() => fireEvent.scroll(window))
+    await waitFor(() => expect(header).toHaveAttribute('data-sticky', 'false'))
+    expect(actions).toHaveAttribute('aria-hidden', 'true')
+    expect(headerLinks.every((link) => link.tabIndex === -1)).toBe(true)
+    expect(
+      document.querySelector('#inicio a[href="#planes"]'),
+    ).toBeInTheDocument()
+    act(() =>
+      observerCallback(
+        [{ boundingClientRect: { top: 104 } } as IntersectionObserverEntry],
+        {} as IntersectionObserver,
+      ),
     )
+    expect(header).toHaveAttribute('data-sticky', 'false')
+  })
+  it('resyncs the header after resize and browser history events', () => {
+    setup()
+    const header = document.querySelector('header')!
+    const trigger = document.querySelector<HTMLElement>(
+      'main > div[aria-hidden="true"]',
+    )!
+    let triggerTop = 900
+    vi.spyOn(trigger, 'getBoundingClientRect').mockImplementation(
+      () => ({ top: triggerTop }) as DOMRect,
+    )
+    for (const [eventName, scrollPosition, top, sticky] of [
+      ['resize', 800, 104, 'true'],
+      ['pageshow', 0, 900, 'false'],
+      ['hashchange', 800, 104, 'true'],
+      ['popstate', 0, 900, 'false'],
+    ] as const) {
+      vi.stubGlobal('scrollY', scrollPosition)
+      triggerTop = top
+      act(() => window.dispatchEvent(new Event(eventName)))
+      expect(header).toHaveAttribute('data-sticky', sticky)
+    }
   })
   it('aligns the hero aside to the title base on desktop', () => {
     setup()
@@ -172,7 +215,7 @@ describe('landing', () => {
     ).not.toBeInTheDocument()
     expect(
       within(section).getByRole('link', {
-        name: 'Elegí tu plan →',
+        name: 'Elegí tu plan',
       }),
     ).toHaveAttribute('href', '#planes')
     expect(
@@ -185,6 +228,31 @@ describe('landing', () => {
         name: /Ver proyectos (anteriores|siguientes)/,
       }),
     ).not.toBeInTheDocument()
+  })
+  it('keeps Carbon icons decorative at their intended sizes', () => {
+    setup()
+    const plansLink = screen.getByRole('link', { name: 'Ver planes' })
+    const contactLink = screen.getByRole('link', {
+      name: 'Contame tu proyecto',
+    })
+    const checks = document.querySelectorAll('#planes li > svg')
+    const cursorIcon = document.querySelector('[data-visible] svg')
+    expect(plansLink.querySelector('svg')).toHaveAttribute('width', '16')
+    expect(contactLink.querySelector('svg')).toHaveAttribute('width', '16')
+    expect(checks.length).toBeGreaterThan(0)
+    expect(
+      [...checks].every(
+        (icon) =>
+          icon.getAttribute('width') === '16' &&
+          icon.getAttribute('aria-hidden') === 'true',
+      ),
+    ).toBe(true)
+    expect(cursorIcon).toHaveAttribute('width', '24')
+    expect(cursorIcon).toHaveAttribute('aria-hidden', 'true')
+    openPlan(0)
+    const close = screen.getByRole('button', { name: 'Cerrar configurador' })
+    expect(close.querySelector('svg')).toHaveAttribute('width', '20')
+    expect(close.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
   })
   it('renders four projects in order without an invented Agrorepuestos URL', () => {
     setup()
@@ -262,12 +330,14 @@ describe('landing', () => {
     const card = within(rail).getAllByRole('article')[0]!
     const cursor = document.querySelector<HTMLElement>('[data-visible]')!
     expect(cursor).toHaveAttribute('aria-hidden', 'true')
+    expect(rail).not.toHaveAttribute('data-cursor-active', 'true')
     fireEvent.pointerMove(card, {
       pointerType: 'mouse',
       clientX: 210,
       clientY: 320,
     })
     expect(cursor).toHaveAttribute('data-visible', 'true')
+    expect(rail).toHaveAttribute('data-cursor-active', 'true')
     expect(cursor.style.transform).toBe(
       'translate3d(210px, 320px, 0) translate(-50%, -50%)',
     )
@@ -277,6 +347,7 @@ describe('landing', () => {
       clientY: 330,
     })
     expect(cursor).toHaveAttribute('data-visible', 'false')
+    expect(rail).toHaveAttribute('data-cursor-active', 'false')
     fireEvent.pointerMove(card, { pointerType: 'touch', clientX: 210 })
     expect(cursor).toHaveAttribute('data-visible', 'false')
   })
@@ -409,10 +480,10 @@ describe('landing', () => {
       within(dialog).getByRole('checkbox', { name: new RegExp(check) }),
     ).toBeInTheDocument()
   })
-  it('closes with X and restores focus', async () => {
+  it('closes with the icon button and restores focus', async () => {
     setup()
     const opener = screen.getAllByRole('button', {
-      name: 'Configurar plan →',
+      name: 'Configurar plan',
     })[0]!
     opener.focus()
     fireEvent.click(opener)

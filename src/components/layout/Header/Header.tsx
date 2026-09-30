@@ -1,3 +1,4 @@
+import { ArrowRight } from '@carbon/icons-react'
 import { ButtonLink } from '../../ui/Button'
 import { Logo } from '../../ui/Logo'
 import {
@@ -22,7 +23,7 @@ export function Header({ sticky }: { sticky: boolean }) {
         </Navigation>
         <HeaderActions $sticky={sticky} aria-hidden={!sticky}>
           <ButtonLink href="#planes" tabIndex={sticky ? 0 : -1}>
-            Ver planes ↗
+            Ver planes <ArrowRight size={16} aria-hidden="true" />
           </ButtonLink>
           <ButtonLink
             $variant="secondary"

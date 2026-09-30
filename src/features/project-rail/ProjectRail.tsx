@@ -1,3 +1,4 @@
+import { ArrowsHorizontal, Launch } from '@carbon/icons-react'
 import { useCallback, useEffect, useRef } from 'react'
 import type { KeyboardEvent, PointerEvent } from 'react'
 import { projects } from '../../data/projects'
@@ -104,6 +105,8 @@ export function ProjectRail({
     }
     if (cursorRef.current?.dataset.visible === 'true')
       cursorRef.current.dataset.visible = 'false'
+    if (railRef.current?.dataset.cursorActive === 'true')
+      railRef.current.dataset.cursorActive = 'false'
   }
 
   function moveCursor(event: PointerEvent<HTMLDivElement>) {
@@ -136,6 +139,9 @@ export function ProjectRail({
       if (!current) return
       const { x, y } = cursorPosition.current
       current.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%)`
+      const rail = railRef.current
+      if (rail && rail.dataset.cursorActive !== 'true')
+        rail.dataset.cursorActive = 'true'
       if (current.dataset.visible !== 'true') current.dataset.visible = 'true'
     })
     if (cursorFrame.current !== null) cursorFrame.current = frame
@@ -315,7 +321,7 @@ export function ProjectRail({
                     href={project.url}
                     aria-label={`Ver proyecto ${project.name}`}
                   >
-                    Ver proyecto <span aria-hidden="true">↗</span>
+                    Ver proyecto <Launch size={16} aria-hidden="true" />
                   </a>
                 )}
               </ProjectMeta>
@@ -342,8 +348,7 @@ export function ProjectRail({
         <RailScrollbarThumb ref={thumbRef} />
       </RailScrollbar>
       <RailCursor ref={cursorRef} aria-hidden="true" data-visible="false">
-        <span>←</span>
-        <span>→</span>
+        <ArrowsHorizontal size={24} aria-hidden="true" />
       </RailCursor>
     </>
   )

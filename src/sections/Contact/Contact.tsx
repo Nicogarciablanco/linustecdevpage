@@ -1,3 +1,4 @@
+import { Launch } from '@carbon/icons-react'
 import { ButtonLink } from '../../components/ui/Button'
 import { Container, DisplayHeading } from '../../components/ui/Layout'
 import { ContactBottom, ContactPanel, ContactSection } from './Contact.styles'
@@ -17,7 +18,7 @@ export function Contact() {
               Antes de empezar, siempre vas a saber qué incluye y cuánto cuesta.
             </p>
             <ButtonLink href="mailto:hola@linustec.dev">
-              Contame tu proyecto ↗
+              Contame tu proyecto <Launch size={16} aria-hidden="true" />
             </ButtonLink>
           </ContactBottom>
         </ContactPanel>

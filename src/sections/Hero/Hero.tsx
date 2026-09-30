@@ -1,3 +1,4 @@
+import { ArrowRight } from '@carbon/icons-react'
 import { ButtonLink } from '../../components/ui/Button'
 import { Container } from '../../components/ui/Layout'
 import {
@@ -37,7 +38,9 @@ export function Hero({ sticky }: { sticky: boolean }) {
           </p>
           {!sticky && (
             <HeroActions>
-              <ButtonLink href="#planes">Ver planes ↗</ButtonLink>
+              <ButtonLink href="#planes">
+                Ver planes <ArrowRight size={16} aria-hidden="true" />
+              </ButtonLink>
               <ButtonLink $variant="secondary" href="#trabajos">
                 Explorar proyectos
               </ButtonLink>

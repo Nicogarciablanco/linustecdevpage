@@ -4,6 +4,7 @@ export const ButtonLink = styled.a<{ $variant?: 'primary' | 'secondary' }>`
   display: inline-flex;
   justify-content: center;
   align-items: center;
+  gap: 6px;
   min-height: 52px;
   padding: 0 23px;
   border: 1px solid
@@ -21,6 +22,7 @@ export const PrimaryButton = styled.button`
   display: inline-flex;
   justify-content: center;
   align-items: center;
+  gap: 6px;
   min-height: 52px;
   padding: 0 23px;
   border: 1px solid transparent;

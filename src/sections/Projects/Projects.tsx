@@ -1,3 +1,4 @@
+import { ArrowRight } from '@carbon/icons-react'
 import {
   Container,
   DisplayHeading,
@@ -22,7 +23,9 @@ export function Projects() {
               avance.
             </SectionCopy>
           </div>
-          <ButtonLink href="#planes">Elegí tu plan →</ButtonLink>
+          <ButtonLink href="#planes">
+            Elegí tu plan <ArrowRight size={16} aria-hidden="true" />
+          </ButtonLink>
         </ProjectsHeader>
         <ProjectRail />
       </Container>
