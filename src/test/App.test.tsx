@@ -15,6 +15,7 @@ import { GlobalStyles } from '../app/styles/GlobalStyles'
 import { theme } from '../app/styles/theme'
 import { projects } from '../data/projects'
 import { ProjectRail } from '../features/project-rail/ProjectRail'
+import { Plans } from '../sections/Plans/Plans'
 
 let observerCallback: IntersectionObserverCallback
 let observerOptions: IntersectionObserverInit | undefined
@@ -254,7 +255,7 @@ describe('landing', () => {
     expect(close.querySelector('svg')).toHaveAttribute('width', '20')
     expect(close.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
   })
-  it('renders four projects in order without an invented Agrorepuestos URL', () => {
+  it('renders projects with their names and destination links', () => {
     setup()
     const rail = screen.getByRole('region', { name: 'Proyectos destacados' })
     const cards = within(rail).getAllByRole('article')
@@ -263,8 +264,15 @@ describe('landing', () => {
       cards.map(
         (card) => within(card).getByRole('heading', { level: 3 }).textContent,
       ),
-    ).toEqual(['Montañita', 'Estudio Paz', 'Agrorepuestos', 'RHEA'])
-    expect(within(cards[2]!).queryByRole('link')).not.toBeInTheDocument()
+    ).toEqual(['Montañita', 'Estudio Jurídico Paz', 'Agrorepuestos', 'RHEA'])
+    expect(
+      cards.map((card) => within(card).getByRole('link').getAttribute('href')),
+    ).toEqual([
+      'https://xn--montaita-h3a.com.ar/',
+      'https://estudiojuridicopaz.com.ar/',
+      'https://agrorepuestos-v2-0.vercel.app/',
+      'https://rhea-v2-0.vercel.app/',
+    ])
     expect(rail).toHaveAttribute('tabindex', '0')
     expect(document.querySelectorAll('a[href="#"]')).toHaveLength(0)
   })
@@ -346,8 +354,8 @@ describe('landing', () => {
       clientX: 220,
       clientY: 330,
     })
-    expect(cursor).toHaveAttribute('data-visible', 'false')
-    expect(rail).toHaveAttribute('data-cursor-active', 'false')
+    expect(cursor).toHaveAttribute('data-visible', 'true')
+    expect(rail).toHaveAttribute('data-cursor-active', 'true')
     fireEvent.pointerMove(card, { pointerType: 'touch', clientX: 210 })
     expect(cursor).toHaveAttribute('data-visible', 'false')
   })
@@ -464,6 +472,62 @@ describe('landing', () => {
     expect(scrollBy).toHaveBeenCalledWith(
       expect.objectContaining({ behavior: 'instant' }),
     )
+  })
+  it('keeps plan cards neutral and moves their cursor without React renders', () => {
+    const frames: FrameRequestCallback[] = []
+    const cancel = vi.fn()
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      frames.push(callback)
+      return frames.length
+    })
+    vi.stubGlobal('cancelAnimationFrame', cancel)
+    let renders = 0
+    render(
+      <ThemeProvider theme={theme}>
+        <Profiler id="plans" onRender={() => renders++}>
+          <Plans selectedId={null} onSelect={vi.fn()} />
+        </Profiler>
+      </ThemeProvider>,
+    )
+    const cards = [...document.querySelectorAll<HTMLElement>('#planes article')]
+    const cursor = document.querySelector<HTMLElement>(
+      '#planes [data-visible]',
+    )!
+    expect(cards).toHaveLength(3)
+    expect(
+      new Set(cards.map((card) => getComputedStyle(card).borderColor)).size,
+    ).toBe(1)
+    const initialRenders = renders
+    fireEvent.pointerEnter(cards[0]!, {
+      pointerType: 'mouse',
+      clientX: 210,
+      clientY: 300,
+    })
+    fireEvent.pointerMove(cards[0]!, {
+      pointerType: 'mouse',
+      clientX: 240,
+      clientY: 320,
+    })
+    expect(frames).toHaveLength(1)
+    frames[0]!(0)
+    expect(cursor.style.transform).toBe(
+      'translate3d(240px, 320px, 0) translate(-50%, -50%)',
+    )
+    expect(cursor).toHaveAttribute('data-visible', 'true')
+    fireEvent.pointerMove(cards[0]!, {
+      pointerType: 'mouse',
+      clientX: 260,
+      clientY: 330,
+    })
+    expect(renders).toBe(initialRenders)
+    fireEvent.pointerLeave(cards[0]!)
+    expect(cancel).toHaveBeenCalledWith(2)
+    expect(cursor).toHaveAttribute('data-visible', 'false')
+    fireEvent.pointerEnter(cards[1]!, { pointerType: 'touch' })
+    expect(cursor).toHaveAttribute('data-visible', 'false')
+    vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: true }))
+    fireEvent.pointerEnter(cards[2]!, { pointerType: 'mouse' })
+    expect(cursor).toHaveAttribute('data-visible', 'false')
   })
   it.each([
     [0, 'Plan gastronómico', 'Carta QR'],

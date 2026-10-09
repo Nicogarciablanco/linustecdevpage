@@ -1,4 +1,4 @@
-import { ArrowsHorizontal, Launch } from '@carbon/icons-react'
+import { ArrowUpRight, ArrowsHorizontal } from '@carbon/icons-react'
 import { useCallback, useEffect, useRef } from 'react'
 import type { KeyboardEvent, PointerEvent } from 'react'
 import { projects } from '../../data/projects'
@@ -40,6 +40,8 @@ export function ProjectRail({
   const cursorRef = useRef<HTMLDivElement>(null)
   const cursorFrame = useRef<number | null>(null)
   const cursorPosition = useRef({ x: 0, y: 0 })
+  const cursorHost = useRef<HTMLElement | null>(null)
+  const activeCursorHost = useRef<HTMLElement | null>(null)
   const thumbGrabOffset = useRef<number | null>(null)
   const drag = useHorizontalDrag()
 
@@ -105,13 +107,20 @@ export function ProjectRail({
     }
     if (cursorRef.current?.dataset.visible === 'true')
       cursorRef.current.dataset.visible = 'false'
-    if (railRef.current?.dataset.cursorActive === 'true')
-      railRef.current.dataset.cursorActive = 'false'
+    if (activeCursorHost.current) {
+      activeCursorHost.current.dataset.cursorActive = 'false'
+      activeCursorHost.current = null
+    }
   }
 
   function moveCursor(event: PointerEvent<HTMLDivElement>) {
     const cursor = cursorRef.current
-    if (!cursor || event.pointerType !== 'mouse') {
+    if (
+      !cursor ||
+      event.pointerType !== 'mouse' ||
+      window.matchMedia('(pointer: coarse), (prefers-reduced-motion: reduce)')
+        .matches
+    ) {
       hideCursor()
       return
     }
@@ -121,14 +130,18 @@ export function ProjectRail({
       : event.target
     const element = target instanceof Element ? target : null
     const card = element?.closest('article')
+    const overScrollbar = !!element && !!scrollbarRef.current?.contains(element)
+    const unrelatedControl = element?.closest(
+      'button, input, select, textarea, [role="button"], a:not([data-project-card-link])',
+    )
     if (
-      !card ||
-      !railRef.current?.contains(card) ||
-      element?.closest('a, button, input, select, textarea, [role="button"]')
+      !overScrollbar &&
+      (!card || !railRef.current?.contains(card) || unrelatedControl)
     ) {
       hideCursor()
       return
     }
+    cursorHost.current = overScrollbar ? scrollbarRef.current : railRef.current
     cursorPosition.current.x = event.clientX
     cursorPosition.current.y = event.clientY
     if (cursorFrame.current !== null) return
@@ -139,9 +152,16 @@ export function ProjectRail({
       if (!current) return
       const { x, y } = cursorPosition.current
       current.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%)`
-      const rail = railRef.current
-      if (rail && rail.dataset.cursorActive !== 'true')
-        rail.dataset.cursorActive = 'true'
+      const host = cursorHost.current
+      current.dataset.kind =
+        host === scrollbarRef.current ? 'scrollbar' : 'card'
+      if (activeCursorHost.current !== host) {
+        if (activeCursorHost.current)
+          activeCursorHost.current.dataset.cursorActive = 'false'
+        activeCursorHost.current = host
+      }
+      if (host && host.dataset.cursorActive !== 'true')
+        host.dataset.cursorActive = 'true'
       if (current.dataset.visible !== 'true') current.dataset.visible = 'true'
     })
     if (cursorFrame.current !== null) cursorFrame.current = frame
@@ -257,8 +277,8 @@ export function ProjectRail({
         aria-label="Proyectos destacados"
         $dragging={drag.isDragging}
         onKeyDown={onKeyDown}
+        onClickCapture={drag.onClickCapture}
         onPointerDown={(event) => {
-          railRef.current?.style.removeProperty('scroll-snap-type')
           drag.onPointerDown(event)
         }}
         onPointerMove={(event) => {
@@ -316,15 +336,15 @@ export function ProjectRail({
                   <small>{project.category}</small>
                   <h3>{project.name}</h3>
                 </div>
-                {hasProjectUrl(project.url) && (
-                  <a
-                    href={project.url}
-                    aria-label={`Ver proyecto ${project.name}`}
-                  >
-                    Ver proyecto <Launch size={16} aria-hidden="true" />
-                  </a>
-                )}
               </ProjectMeta>
+              {hasProjectUrl(project.url) && (
+                <a
+                  className="project-card-link"
+                  data-project-card-link="true"
+                  href={project.url}
+                  aria-label={`Visitar el sitio de ${project.name}`}
+                />
+              )}
             </ProjectCard>
           ))}
         </RailContent>
@@ -341,13 +361,24 @@ export function ProjectRail({
         tabIndex={0}
         onKeyDown={onScrollbarKeyDown}
         onPointerDown={onScrollbarPointerDown}
-        onPointerMove={onScrollbarPointerMove}
+        onPointerEnter={moveCursor}
+        onPointerMove={(event) => {
+          onScrollbarPointerMove(event)
+          moveCursor(event)
+        }}
+        onPointerLeave={hideCursor}
         onPointerUp={onScrollbarPointerEnd}
         onPointerCancel={onScrollbarPointerEnd}
       >
         <RailScrollbarThumb ref={thumbRef} />
       </RailScrollbar>
-      <RailCursor ref={cursorRef} aria-hidden="true" data-visible="false">
+      <RailCursor
+        ref={cursorRef}
+        aria-hidden="true"
+        data-visible="false"
+        data-kind="card"
+      >
+        <ArrowUpRight data-card-arrow size={24} aria-hidden="true" />
         <ArrowsHorizontal size={24} aria-hidden="true" />
       </RailCursor>
     </>

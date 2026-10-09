@@ -16,27 +16,35 @@ export const PlanGrid = styled.div`
     grid-template-columns: 1fr;
   }
 `
-export const PlanCard = styled.article<{ $featured: boolean }>`
+export const PlanCard = styled.article`
+  position: relative;
   min-height: 430px;
   padding: 30px;
   display: flex;
   flex-direction: column;
-  border: 1px solid
-    ${({ $featured, theme }) => ($featured ? theme.colors.teal : theme.colors.line)};
+  border: 1px solid ${({ theme }) => theme.colors.line};
   border-radius: ${({ theme }) => theme.radius.plan};
   background: ${({ theme }) => theme.colors.page};
-  box-shadow: ${({ $featured }) => ($featured ? 'inset 0 0 0 1px #00d2a0, 0 24px 80px rgba(0,210,160,.09)' : 'none')};
   transition:
     transform 0.25s,
-    border-color 0.25s;
+    border-color 0.25s,
+    border-width 0.25s;
   &:hover {
     transform: translateY(-7px);
+    border-width: 1px;
     border-color: ${({ theme }) => theme.colors.teal};
+  }
+  &:focus-within {
+    border-color: ${({ theme }) => theme.colors.teal};
+  }
+  &[data-cursor-active='true'],
+  &[data-cursor-active='true'] * {
+    cursor: none;
   }
   .number {
     color: ${({ theme }) => theme.colors.tealText};
     font-family: ${({ theme }) => theme.fonts.display};
-    font-size: 16px;
+    font-size: 18px;
   }
   h3 {
     margin: 70px 0 16px;
@@ -91,4 +99,38 @@ export const PlanButton = styled.button`
   background: transparent;
   text-align: left;
   font-weight: 800;
+  &::before {
+    content: '';
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+  }
+`
+
+export const PlanCursor = styled.div`
+  position: fixed;
+  z-index: 40;
+  top: 0;
+  left: 0;
+  width: 90px;
+  height: 90px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: ${({ theme }) => theme.colors.ink};
+  background: ${({ theme }) => theme.colors.teal};
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translate3d(-50%, -50%, 0);
+  will-change: transform;
+
+  &[data-visible='true'] {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  @media (pointer: coarse), (prefers-reduced-motion: reduce) {
+    display: none;
+  }
 `

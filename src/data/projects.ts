@@ -5,6 +5,7 @@ export const projects: Project[] = [
     id: 'montanita',
     name: 'Montañita',
     category: 'Gastronomía · pedidos',
+    url: 'https://xn--montaita-h3a.com.ar/',
     visual: {
       kind: 'css-mockup',
       title: ['MONTAÑITA', 'COCINA REAL.'],
@@ -15,20 +16,22 @@ export const projects: Project[] = [
   },
   {
     id: 'estudio-paz',
-    name: 'Estudio Paz',
+    name: 'Estudio Jurídico Paz',
     category: 'Institucional · servicios',
+    url: 'https://estudiojuridicopaz.com.ar/',
     visual: {
       kind: 'css-mockup',
       title: ['PAZ', '& ASOC.'],
       background:
         'linear-gradient(135deg, #e5e8de 0%, #a8b1a8 54%, #63736d 100%)',
-      alt: 'Mockup provisional de Estudio Paz con el título Paz y Asociados',
+      alt: 'Mockup provisional de Estudio Jurídico Paz con el título Paz y Asociados',
     },
   },
   {
     id: 'agrorepuestos',
     name: 'Agrorepuestos',
     category: 'Catálogo · repuestos',
+    url: 'https://agrorepuestos-v2-0.vercel.app/',
     visual: {
       kind: 'css-mockup',
       title: ['AGRO', 'REPUESTOS'],
@@ -41,6 +44,7 @@ export const projects: Project[] = [
     id: 'rhea',
     name: 'RHEA',
     category: 'Experiencia · reservas',
+    url: 'https://rhea-v2-0.vercel.app/',
     visual: {
       kind: 'css-mockup',
       title: ['RHEA'],

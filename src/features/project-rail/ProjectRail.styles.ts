@@ -2,15 +2,16 @@ import styled, { css } from 'styled-components'
 
 export const RailTrack = styled.div<{ $dragging: boolean }>`
   position: relative;
-  width: 100%;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
   display: block;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 2px var(--page-gutter) 22px 0;
+  padding: 2px var(--page-gutter) 22px;
   background: ${({ theme }) => theme.colors.page};
   cursor: grab;
   user-select: none;
-  scroll-padding-left: 0;
+  scroll-padding-left: var(--page-gutter);
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
   scrollbar-width: none;
@@ -31,6 +32,10 @@ export const RailTrack = styled.div<{ $dragging: boolean }>`
       scroll-snap-type: none;
       scroll-behavior: auto;
     `}
+
+  &[data-cursor-active='true'] {
+    cursor: none;
+  }
 
   @media (prefers-reduced-motion: reduce) {
     scroll-behavior: auto;
@@ -60,6 +65,10 @@ export const RailScrollbar = styled.div`
     cursor: grabbing;
   }
 
+  &[data-cursor-active='true'] {
+    cursor: none;
+  }
+
   &:focus-visible {
     outline: 3px solid ${({ theme }) => theme.colors.tealHeading};
     outline-offset: 3px;
@@ -82,41 +91,44 @@ export const RailCursor = styled.div`
   z-index: 40;
   top: 0;
   left: 0;
-  width: 85px;
-  height: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: #f0ff4c;
-  color: #000;
-  line-height: 1;
+  width: 90px;
+  height: 90px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: ${({ theme }) => theme.colors.ink};
+  background: ${({ theme }) => theme.colors.teal};
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
   transform: translate3d(-50%, -50%, 0);
   will-change: transform;
-  transition:
-    opacity 140ms ease-out,
-    visibility 0s linear 140ms;
+
+  svg:not([data-card-arrow]) {
+    display: none;
+  }
+
+  &[data-kind='scrollbar'] {
+    width: 85px;
+    height: 50px;
+    border-radius: 999px;
+
+    svg[data-card-arrow] {
+      display: none;
+    }
+
+    svg:not([data-card-arrow]) {
+      display: block;
+    }
+  }
 
   &[data-visible='true'] {
     opacity: 1;
     visibility: visible;
-    transition:
-      opacity 140ms ease-out,
-      visibility 0s;
   }
 
-  @media (pointer: coarse) {
+  @media (pointer: coarse), (prefers-reduced-motion: reduce) {
     display: none;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    &,
-    &[data-visible='true'] {
-      transition: none;
-    }
   }
 `
 
@@ -127,6 +139,7 @@ export const RailContent = styled.div`
 `
 
 export const ProjectCard = styled.article`
+  position: relative;
   flex: 0 0 clamp(300px, calc(25vw - 5px), 475px);
   min-width: 0;
   overflow: hidden;
@@ -141,8 +154,21 @@ export const ProjectCard = styled.article`
     transform: translateY(-3px);
   }
 
-  [data-cursor-active='true'] & {
+  [data-cursor-active='true'] &,
+  [data-cursor-active='true'] & * {
     cursor: none;
+  }
+
+  .project-card-link {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    border-radius: inherit;
+  }
+
+  .project-card-link:focus-visible {
+    outline: 3px solid ${({ theme }) => theme.colors.tealHeading};
+    outline-offset: -5px;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -253,7 +279,7 @@ export const ProjectMeta = styled.div`
   min-height: clamp(100px, calc(9.75vw - 33px), 154px);
   margin: 0 -8px -8px;
   padding: 16px 20px 20px;
-  background: ${({ theme }) => theme.colors.page};
+  background: ${({ theme }) => theme.colors.surface};
 
   small {
     color: ${({ theme }) => theme.colors.tealText};
@@ -268,23 +294,6 @@ export const ProjectMeta = styled.div`
     font-size: clamp(23px, 1.8vw, 28px);
     line-height: 1.06;
     letter-spacing: -0.035em;
-  }
-
-  a {
-    flex: 0 0 auto;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    color: ${({ theme }) => theme.colors.ink};
-    font-size: 14px;
-    font-weight: 800;
-    text-underline-offset: 5px;
-    cursor: pointer;
-  }
-
-  a:focus-visible {
-    outline: 3px solid ${({ theme }) => theme.colors.tealHeading};
-    outline-offset: 5px;
   }
 
   @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {
