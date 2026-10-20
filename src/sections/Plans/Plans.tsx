@@ -8,6 +8,7 @@ import {
   SectionHead,
 } from '../../components/ui/Layout'
 import { planContent, plans } from '../../data/plans'
+import { loadTurnstile } from '../../features/plan-configurator/turnstileLoader'
 import type { PlanId } from '../../types/plan'
 import { PlanCard } from './PlanCard'
 import { PlanCursor, PlanGrid, PlansSection } from './Plans.styles'
@@ -23,6 +24,13 @@ export function Plans({
   const cursorFrame = useRef<number | null>(null)
   const cursorPosition = useRef({ x: 0, y: 0 })
   const activeCard = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    if (import.meta.env.VITE_TURNSTILE_SITE_KEY?.trim())
+      void loadTurnstile().catch(() => {
+        // The configurator offers a retry if this early load fails.
+      })
+  }, [])
 
   useEffect(
     () => () => {

@@ -178,18 +178,40 @@ export async function verifyTurnstile(
       signal: AbortSignal.timeout(8000),
     },
   )
-  if (!response.ok) throw new Error('Turnstile unavailable')
+  if (!response.ok) {
+    console.warn('Turnstile Siteverify:', `http-${response.status}`)
+    throw new Error('Turnstile unavailable')
+  }
   const result: unknown = await response.json()
-  return (
-    !!result &&
-    typeof result === 'object' &&
-    'success' in result &&
-    result.success === true &&
-    'hostname' in result &&
-    result.hostname === new URL(config.SITE_ORIGIN).hostname &&
-    'action' in result &&
-    result.action === consultationPolicy.action
-  )
+  if (!result || typeof result !== 'object') {
+    console.warn('Turnstile Siteverify:', 'malformed-response')
+    return false
+  }
+  if (!('success' in result) || result.success !== true) {
+    const raw = 'error-codes' in result ? result['error-codes'] : undefined
+    const codes = Array.isArray(raw)
+      ? raw
+          .filter(
+            (code): code is string =>
+              typeof code === 'string' && /^[a-z0-9-]{1,64}$/.test(code),
+          )
+          .slice(0, 8)
+      : []
+    console.warn('Turnstile Siteverify:', codes.join(',') || 'unknown-error')
+    return false
+  }
+  if (
+    !('hostname' in result) ||
+    result.hostname !== new URL(config.SITE_ORIGIN).hostname
+  ) {
+    console.warn('Turnstile Siteverify:', 'hostname-mismatch')
+    return false
+  }
+  if (!('action' in result) || result.action !== consultationPolicy.action) {
+    console.warn('Turnstile Siteverify:', 'action-mismatch')
+    return false
+  }
+  return true
 }
 
 export function emailText(data: ConsultationPayload): string {

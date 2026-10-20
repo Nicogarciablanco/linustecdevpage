@@ -12,8 +12,14 @@ import { plans, planContent } from '../data/plans'
 import { theme } from '../app/styles/theme'
 
 vi.mock('../features/plan-configurator/Turnstile', () => ({
-  Turnstile: ({ onToken }: { onToken: (token: string) => void }) => (
-    <button type="button" onClick={() => onToken('test-token')}>
+  Turnstile: ({
+    onToken,
+    resetKey,
+  }: {
+    onToken: (token: string) => void
+    resetKey: number
+  }) => (
+    <button type="button" onClick={() => onToken(`test-token-${resetKey}`)}>
       Completar verificación de prueba
     </button>
   ),
@@ -221,6 +227,40 @@ describe('consultation submission UI', () => {
     const second = JSON.parse(fetcher.mock.calls[1]![1].body)
     expect(first.requestId).toBe(second.requestId)
     expect(first.contact).toEqual(second.contact)
+    expect(first.turnstileToken).not.toBe(second.turnstileToken)
+  })
+  it('retries after Siteverify rejects a spent token without reloading', async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({ ok: false, code: 'invalid_token' }, { status: 400 }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({ ok: true, id: 'provider-confirmed-id' }),
+      )
+    vi.stubGlobal('fetch', fetcher)
+    review()
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar consulta' }))
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        planContent.submission.errors.invalid_token,
+      ),
+    )
+    expect(
+      screen.getByRole('button', { name: 'Enviar consulta' }),
+    ).toBeDisabled()
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Completar verificación de prueba' }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar consulta' }))
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        planContent.submission.success,
+      ),
+    )
+    const first = JSON.parse(fetcher.mock.calls[0]![1].body)
+    const second = JSON.parse(fetcher.mock.calls[1]![1].body)
+    expect(first.turnstileToken).not.toBe(second.turnstileToken)
   })
   it.each([
     Response.json({ ok: true }),

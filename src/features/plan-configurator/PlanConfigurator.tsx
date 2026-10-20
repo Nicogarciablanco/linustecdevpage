@@ -1,5 +1,5 @@
 import { ArrowRight, Close } from '@carbon/icons-react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { MouseEvent } from 'react'
 import { PrimaryButton } from '../../components/ui/Button'
 import { planContent } from '../../data/plans'
@@ -27,6 +27,8 @@ import {
 } from './PlanConfigurator.styles'
 
 type Step = 'options' | 'details' | 'review'
+const tokenMaxAgeMs = 285_000
+type VerificationToken = { value: string; receivedAt: number }
 const emptyContact: RequestContact = {
   name: '',
   business: '',
@@ -77,7 +79,8 @@ export function PlanConfigurator({
   >('idle')
   const [submissionError, setSubmissionError] =
     useState<SubmissionErrorCode | null>(null)
-  const [token, setToken] = useState('')
+  const [token, setToken] = useState<VerificationToken | null>(null)
+  const tokenRef = useRef<VerificationToken | null>(null)
   const [verificationError, setVerificationError] = useState(false)
   const [widgetReset, setWidgetReset] = useState(0)
   const requestId = useRef<string | null>(null)
@@ -86,6 +89,25 @@ export function PlanConfigurator({
   const mounted = useRef(true)
   const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY?.trim() ?? ''
   useBodyScrollLock(true)
+
+  const updateToken = useCallback((value: string) => {
+    const next = value ? { value, receivedAt: Date.now() } : null
+    tokenRef.current = next
+    setToken(next)
+  }, [])
+
+  const resetVerification = useCallback(() => {
+    updateToken('')
+    setWidgetReset((value) => value + 1)
+  }, [updateToken])
+
+  useEffect(() => {
+    if (!token) return
+    const timer = window.setTimeout(() => {
+      if (tokenRef.current === token) resetVerification()
+    }, tokenMaxAgeMs)
+    return () => window.clearTimeout(timer)
+  }, [token, resetVerification])
 
   const request: PlanRequestDraft = {
     planId: plan.id,
@@ -119,8 +141,15 @@ export function PlanConfigurator({
   }
 
   async function send() {
-    if (sending.current || submission === 'sent' || !token || !siteKey) return
+    if (sending.current || submission === 'sent' || !siteKey) return
+    const currentToken = tokenRef.current
+    if (!currentToken) return
+    if (Date.now() - currentToken.receivedAt >= tokenMaxAgeMs) {
+      resetVerification()
+      return
+    }
     sending.current = true
+    updateToken('')
     setSubmission('sending')
     setSubmissionError(null)
     requestId.current ??= crypto.randomUUID()
@@ -128,7 +157,12 @@ export function PlanConfigurator({
     controller.current = abort
     const timeout = window.setTimeout(() => abort.abort(), 35000)
     try {
-      await submitConsultation(request, requestId.current, token, abort.signal)
+      await submitConsultation(
+        request,
+        requestId.current,
+        currentToken.value,
+        abort.signal,
+      )
       if (mounted.current) setSubmission('sent')
     } catch (error) {
       if (mounted.current) {
@@ -136,8 +170,7 @@ export function PlanConfigurator({
         setSubmissionError(
           error instanceof SubmissionError ? error.code : 'mail_unconfirmed',
         )
-        setToken('')
-        setWidgetReset((value) => value + 1)
+        resetVerification()
       }
     } finally {
       window.clearTimeout(timeout)
@@ -292,7 +325,7 @@ export function PlanConfigurator({
                   <Turnstile
                     siteKey={siteKey}
                     resetKey={widgetReset}
-                    onToken={setToken}
+                    onToken={updateToken}
                     onUnavailable={setVerificationError}
                   />
                 ) : (
@@ -306,7 +339,7 @@ export function PlanConfigurator({
                     <SecondaryButton
                       type="button"
                       disabled={submission === 'sending'}
-                      onClick={() => setWidgetReset((value) => value + 1)}
+                      onClick={resetVerification}
                     >
                       {planContent.submission.retryVerification}
                     </SecondaryButton>
@@ -342,7 +375,7 @@ export function PlanConfigurator({
                   onClick={() => {
                     setSubmission('idle')
                     setSubmissionError(null)
-                    setToken('')
+                    updateToken('')
                     setStep(step === 'review' ? 'details' : 'options')
                   }}
                   disabled={submission === 'sending'}

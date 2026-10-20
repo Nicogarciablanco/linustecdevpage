@@ -208,17 +208,34 @@ describe('consultation server', () => {
     },
   )
   it.each([
-    { success: false, 'error-codes': ['invalid-input-response'] },
-    { success: false, 'error-codes': ['timeout-or-duplicate'] },
     {
-      success: true,
-      hostname: 'attacker.example',
-      action: consultationPolicy.action,
+      turnstile: { success: false, 'error-codes': ['invalid-input-response'] },
+      diagnostic: 'invalid-input-response',
     },
-    { success: true, hostname: 'linustec.example', action: 'another-form' },
+    {
+      turnstile: { success: false, 'error-codes': ['timeout-or-duplicate'] },
+      diagnostic: 'timeout-or-duplicate',
+    },
+    {
+      turnstile: {
+        success: true,
+        hostname: 'attacker.example',
+        action: consultationPolicy.action,
+      },
+      diagnostic: 'hostname-mismatch',
+    },
+    {
+      turnstile: {
+        success: true,
+        hostname: 'linustec.example',
+        action: 'another-form',
+      },
+      diagnostic: 'action-mismatch',
+    },
   ])(
     'rejects invalid, expired, replayed or wrong-context Turnstile tokens: %o',
-    async (turnstile) => {
+    async ({ turnstile, diagnostic }) => {
+      const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
       const fetcher = services({ turnstile })
       const response = await handleConsultation(request(), env, ip, fetcher)
       expect(await response.json()).toEqual({
@@ -227,6 +244,14 @@ describe('consultation server', () => {
       })
       expect(response.status).toBe(400)
       expect(fetcher).toHaveBeenCalledTimes(2)
+      expect(warning).toHaveBeenCalledWith('Turnstile Siteverify:', diagnostic)
+      expect(JSON.stringify(warning.mock.calls)).not.toContain(
+        payload().turnstileToken,
+      )
+      expect(JSON.stringify(warning.mock.calls)).not.toContain(
+        env.TURNSTILE_SECRET_KEY,
+      )
+      warning.mockRestore()
     },
   )
   it('returns 429 without verifying or sending when the shared limit is exceeded', async () => {

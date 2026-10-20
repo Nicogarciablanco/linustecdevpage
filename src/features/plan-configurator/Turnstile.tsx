@@ -1,48 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { consultationPolicy } from '../../data/consultationPolicy'
-
-interface TurnstileApi {
-  ready: (callback: () => void) => void
-  render: (container: HTMLElement, options: Record<string, unknown>) => string
-  remove: (widgetId: string) => void
-}
-declare global {
-  interface Window {
-    turnstile?: TurnstileApi
-  }
-}
-
-let scriptPromise: Promise<TurnstileApi> | null = null
-function loadTurnstile(): Promise<TurnstileApi> {
-  if (window.turnstile) return Promise.resolve(window.turnstile)
-  if (scriptPromise) return scriptPromise
-  scriptPromise = new Promise((resolve, reject) => {
-    const script = document.createElement('script')
-    const timer = window.setTimeout(() => fail(), 15000)
-    function fail() {
-      window.clearTimeout(timer)
-      script.remove()
-      scriptPromise = null
-      reject(new Error('Turnstile unavailable'))
-    }
-    script.src =
-      'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
-    script.async = true
-    script.onerror = fail
-    script.onload = () => {
-      if (!window.turnstile) {
-        fail()
-        return
-      }
-      window.turnstile.ready(() => {
-        window.clearTimeout(timer)
-        resolve(window.turnstile!)
-      })
-    }
-    document.head.appendChild(script)
-  })
-  return scriptPromise
-}
+import { loadTurnstile } from './turnstileLoader'
+import type { TurnstileApi } from './turnstileLoader'
 
 export function Turnstile({
   siteKey,
@@ -60,8 +19,22 @@ export function Turnstile({
     let cancelled = false
     let widget: string | undefined
     let api: TurnstileApi | undefined
+    let errorResetAttempted = false
     onToken('')
     onUnavailable(false)
+    function resetWidget(reportError: boolean) {
+      if (cancelled) return
+      onToken('')
+      if (reportError) onUnavailable(true)
+      if (!api || widget === undefined) return
+      if (reportError && errorResetAttempted) return
+      if (reportError) errorResetAttempted = true
+      try {
+        api.reset(widget)
+      } catch {
+        onUnavailable(true)
+      }
+    }
     void loadTurnstile()
       .then((loaded) => {
         if (cancelled || !container.current) return
@@ -73,25 +46,14 @@ export function Turnstile({
           theme: 'light',
           callback: (token: string) => {
             if (!cancelled) {
+              errorResetAttempted = false
               onUnavailable(false)
               onToken(token)
             }
           },
-          'expired-callback': () => {
-            if (!cancelled) onToken('')
-          },
-          'error-callback': () => {
-            if (!cancelled) {
-              onToken('')
-              onUnavailable(true)
-            }
-          },
-          'timeout-callback': () => {
-            if (!cancelled) {
-              onToken('')
-              onUnavailable(true)
-            }
-          },
+          'expired-callback': () => resetWidget(false),
+          'error-callback': () => resetWidget(true),
+          'timeout-callback': () => resetWidget(true),
         })
       })
       .catch(() => {
