@@ -1,61 +1,48 @@
-# Entrega LinusTec
+# LinusTec: estado de entrega
 
-## Estado
+## Iteración de Planes — octubre de 2026
 
-Landing React/Vite/TypeScript/Styled Components. Caveman **full** aplicado el 24-09-2026 con tres agentes delimitados: Header/Hero, Proyectos y QA de solo lectura. El agente principal integró, corrigió el rail con scrollbar clásico, revisó visualmente y mantuvo tests y documentación. El directorio no es repositorio Git (`git status` devuelve `fatal: not a git repository`). No hubo commits ni despliegues.
+La sección Planes conserva los cuatro productos de `reference/linustec-planes-referencia.html`: Gastronómico, Servicios y reservas, Presentación institucional y A medida. La revisión del 16 de octubre parte de la copia local con cambios pendientes, sin recuperar el commit retirado. Las tarjetas se apilan en todos los tamaños; escritorio distribuye presentación y desplegables en dos columnas internas, y tablet/mobile usan una. Cada tarjeta tiene tres desplegables nativos independientes: Qué incluye, Extras y funciones adicionales y Material que necesitamos de vos. El archivo de referencia estaba sin seguimiento en Git y se conservó intacto. No se tocaron Header, Hero, Proyectos, Proceso, Contacto ni sus datos. No se hizo reset, clean, commit, deploy ni push.
 
-Iteración 25-09-2026: Hero ahora usa `src/assets/brand/linustec-symbol.svg` con halo duplicado decorativo, sombra sutil y flotación vertical lenta que respeta `prefers-reduced-motion`. Header, rail y demás secciones no cambiaron en esta iteración.
+## Dónde editar el contenido comercial
 
-## Layout y Header
+Todo el contenido de las tarjetas y del configurador vive en [`src/data/plans.ts`](src/data/plans.ts). `planContent` reúne los textos compartidos de sección, desplegables, botones, formulario, dominio, precios pendientes y condiciones de comienzo. Cada registro de `plans` contiene `headline`, `audience`, `name`, `summary`, `inclusions`, `boundary`, `material`, `choices`, `extras` y `price`. Las cantidades incluidas, como los 48 productos gastronómicos o las cuatro páginas institucionales, están en las descripciones de `inclusions` y `boundary`. Los precios base se cambian en `price`; los importes de adicionales, en `extras[].price`. El estado `{ status: 'pending' }` muestra `AR$***`; `{ status: 'quote' }` muestra `A cotizar`; un precio definitivo usa `{ status: 'defined', amount: 123456 }`. El formato está en `formatPrice` y el total en `totalPrice` del mismo archivo.
 
-- Variables compartidas: `--page-gutter: clamp(72px, 7.8vw, 112px)`, tablet `clamp(32px, 5vw, 64px)`, mobile `20px`; `--section-space-top: clamp(96px, 9.6vw, 132px)`; `--section-space-bottom: clamp(88px, 8.2vw, 116px)`; `--content-gap: clamp(28px, 2.6vw, 38px)`.
-- Hero, Proyectos, Planes, Proceso, Contacto y Footer comparten gutter. Las secciones comunes ya no tienen `min-height` forzado. Hero conserva altura específica y termina en el primer viewport.
-- Header natural y sticky: x/y 7 px, ancho `viewport - 14px`, alto 66 px. Padding desktop 13 × 22 px; radio sticky 18 px; fondo `rgba(8, 17, 35, .86)`; blur 18 px; sombra `0 12px 48px rgba(5, 12, 28, .16)`. El slot mide 80 px. Logo, navegación y CTA conservan su posición relativa entre estados.
-- Isotipo del Hero conserva proporción `6045:7199` (`0.8397`) con `object-fit: contain`. Medido en Chromium: 414 × 493 px a 1440 × 900; 302 × 360 px a 1280 × 720; 82 × 98 px máximo en 390 × 844. Glow repite la misma URL de asset, es decorativo y lleva blur bajo; sombra verde sutil y flotación vertical de 6 px cada 12 s. Reduced motion elimina animación. Hero termina en 900, 720 y 844 px respectivamente, sin overflow horizontal ni colisión entre isotipo, título y texto auxiliar.
+Los tipos comerciales están en [`src/types/plan.ts`](src/types/plan.ts). `PlanRequestDraft` conserva el borrador con estado `draft`; `src/types/consultation.ts` define el contrato JSON y los resultados del envío.
 
-## Proyectos
+## Flujo actual
 
-- Track sin centrado, alineado a `--page-gutter` y con el mismo padding final. Su expansión usa el ancho del contenedor más ambos gutters, evitando el corrimiento de `100vw` cuando Chromium reserva espacio para la barra vertical.
-- Cards desktop `clamp(300px, 24.35vw, 340px)`, gap 20 px, padding 8 px y radio 13 px. Visual 320–340 px; altura total 448–468 px. Mobile conserva `84vw` y 427.59 px de alto a 390 px.
-- Se preservan scroll nativo, touch, drag, teclado, Home/End, snap, foco visible, scrollbar y movimiento reducido. No hay flechas ni dependencia de slider.
-- Orden y datos productivos siguen Montañita, Estudio Paz, Agrorepuestos y RHEA. Agrorepuestos continúa tercero, provisional y sin URL ficticia. CTA “Elegí tu plan →” enlaza a `#planes`.
+- Estándar: tarjeta con base consultable en desplegable → Opciones y extras → Datos y material → Resumen.
+- A medida: tarjeta con explicación consultable → Datos de la idea y referencias → Resumen.
+- El modal conserva datos al volver entre pasos. Al cerrar y abrir otro plan, inicia con las opciones propias del nuevo plan.
+- Hay validación de nombre, negocio, correo, WhatsApp, mensaje y enlace obligatorio a la carpeta de materiales. X, Escape y clic en el fondo cierran; el foco vuelve al botón que abrió el diálogo.
+- Después del resumen, “Enviar consulta” requiere Turnstile y una respuesta confirmada del servidor. El éxito solo se muestra cuando Resend acepta el envío; ante fallos, se conservan datos y enlace, se renueva el token y se permite reintentar. Sin la site key pública el botón queda deshabilitado; sin configuración privada el servidor devuelve `503`.
 
-## Mediciones Chromium
+## Archivos principales
 
-| Viewport   |    Gutter |               Card | Visibilidad inicial                  |
-| ---------- | --------: | -----------------: | ------------------------------------ |
-| 1440 × 900 |    112 px |       340 × 468 px | 3 completas + 248 px de la cuarta    |
-| 1366 × 768 | 106.55 px | 332.61 × 455.83 px | 3 completas + 201.63 px de la cuarta |
-| 1280 × 720 |  99.84 px |    311.67 × 448 px | 3 completas + 185.14 px de la cuarta |
-| 390 × 844  |     20 px | 327.59 × 427.59 px | 1 completa + parte de la segunda     |
+- Tarjetas: `src/sections/Plans/Plans.tsx`, `PlanCard.tsx` y `Plans.styles.ts`.
+- Modal y pasos: `src/features/plan-configurator/PlanConfigurator.tsx`, `PlanOptions.tsx`, `RequestForm.tsx`, `RequestSummary.tsx` y `PlanConfigurator.styles.ts`.
+- Datos y tipos: `src/data/plans.ts` y `src/types/plan.ts`.
+- Pruebas: `src/test/App.test.tsx`.
 
-Con cuatro proyectos, End deja el último completo y conserva el padding final. El fixture exclusivo de QA con cinco proyectos mantiene el mismo inicio, permite volver al primero con Home y deja el quinto completo con padding final. No modifica `src/data/projects.ts`.
+## Pendiente para habilitar envío real
 
-## Responsive y configurador
+El responsable confirmó Cloudflare Pages o Workers, pero falta identificar el producto/proyecto exacto. Proveedor y destinatario todavía no están definidos. Se dejó Resend como adaptador preparado, sin cuenta ni claves inventadas. Falta configurar dominio remitente verificado, MAIL_FROM/MAIL_TO, claves Resend/Turnstile, widget público y Upstash para límites compartidos. La lista completa y pasos están en `docs/CONSULTATIONS.md` y `.env.example`. No se comprobó un correo real: los casos de proveedor se prueban con servicios externos controlados en tests. El servidor local sin configuración se comprobó por HTTP y responde `503`.
 
-- Header usable a 390 px con ambos CTA; rail táctil desplazado en Chromium y card siguiente visible.
-- El diálogo del configurador queda dentro de 390 × 844, bloquea body scroll, cierra con Escape y restaura foco. Se corrigió el ancho mínimo de su cabecera móvil para eliminar overflow horizontal.
-- No existe overflow horizontal global en los cuatro viewports.
+La entrada de Pages es `functions/api/consultations.ts`; la de Workers es `server/worker.ts`, con ejemplo no activo `wrangler.example.jsonc`. No se cambió infraestructura externa ni se publicó código. Los cuatro registros comerciales se conservan.
 
-## Archivos modificados
+Validación de la fase de correo: lint, TypeScript, 59 pruebas y build correctos. Servidor y UI prueban servicios externos con respuestas controladas; no se verificó entrega real. Pages y Worker compilan/ejecutan localmente con Wrangler 4.151.1 y devuelven `503` sin secretos; la home sigue respondiendo `200`. Chromium revisó 1920×1080, 390×844 y 320×720. Revisión de seguridad solo lectura por GPT-6.1 Sol High integrada: el límite global se consume únicamente tras CAPTCHA válido. No se añadieron dependencias del proyecto.
 
-- Layout: `src/app/styles/theme.ts`, `src/app/styles/GlobalStyles.ts`, `src/components/ui/Layout.ts`.
-- Hero: `src/sections/Hero/Hero.tsx`, `src/sections/Hero/Hero.styles.ts`. El asset `src/assets/brand/linustec-symbol.svg` ya existía y no se duplicó.
-- Header: sin cambios en esta iteración.
-- Proyectos: `src/sections/Projects/Projects.styles.ts`, `src/features/project-rail/ProjectRail.tsx`, `src/features/project-rail/ProjectRail.styles.ts`.
-- Ritmo y responsive: `src/sections/Contact/Contact.styles.ts`, `src/features/plan-configurator/PlanConfigurator.styles.ts`.
-- Pruebas y documentación: `src/test/App.test.tsx`, `docs/DECISIONS.md`, este archivo.
+## Carpeta de materiales obligatoria — 20 de octubre de 2026
 
-## Validaciones
+Todos los planes requieren «Enlace al material» para una carpeta con permisos de lectura. El cliente aporta logo, fotos y videos; LinusTec desarrolla la página y no produce esos recursos. El resumen muestra el enlace como texto y el servidor lo añade al correo de texto plano. Acepta URL absoluta HTTP(S), máximo 2048 caracteres, sin credenciales, espacios ni controles. El servidor no visita ni descarga enlaces, ni inicia sesión con servicios de archivos. Se quitaron la carga, los tipos, los límites, la validación y el envío de adjuntos. El cuerpo JSON tiene un máximo de 32 KiB. `src/data/plans.ts` contiene los textos y `src/data/consultationPolicy.ts` la validación compartida.
 
-- `pnpm lint`: correcto.
-- `pnpm typecheck`: correcto.
-- `pnpm test --run`: correcto, 13 pruebas. Incluye fixture de cinco proyectos, extremos Home/End y movimiento reducido.
-- `pnpm build`: correcto.
-- Prettier: aplicado y comprobado solo en archivos modificados.
-- Chromium: 1440 × 900, 1366 × 768, 1280 × 720 y 390 × 844 revisados. Teclado, drag, touch, snap, foco, scrollbar, movimiento reducido y modal verificados.
-- Chromium Hero: 1440 × 900 y 1280 × 720 muestran isotipo nítido en columna derecha, sin superponerse al título ni texto auxiliar; CTA y Hero completos dentro del primer viewport. Mobile 390 × 844 conserva flujo aprobado, isotipo pequeño entre título y descripción y sin overflow. `prefers-reduced-motion: reduce` produce `animation-name: none`; source del glow coincide con source principal y capa está fuera del árbol accesible.
+Validación de esta iteración: `pnpm lint`, `pnpm typecheck`, `pnpm test --run` (**67 pruebas**) y `pnpm build` correctos. Las pruebas cubren enlace ausente, URL inválida, HTTP y HTTPS válidos, rechazo del campo antiguo `files`, correo de texto sin adjuntos, falta de clave Resend, rechazo del proveedor y confirmación solo con respuesta aceptada. No se comprobó entrega real de correo porque los servicios externos siguen sin configurar. Sin reset, clean, commit, push ni deploy.
 
-## Dependencias y contenido
+## Validación del 16 de octubre
 
-No se agregaron dependencias. Logo del Header, tipografías, paleta, textos, precios, datos de proyectos y arquitectura funcional permanecen sin cambios. El Hero pasó de la esfera ornamental al SVG original de LinusTec.
+- Los cuatro registros comerciales se compararon con una copia de los archivos pendientes tomada antes de editar: inclusiones, límites, opciones, extras, materiales y precios permanecen idénticos.
+- Chromium: 1920×1080, 1440×900, 1280×720, 1024×768, 768×1024, 390×844 y 320×720, sin overflow global ni de tarjetas con los tres desplegables abiertos. Títulos con color del tema `#020617` y opacidad 1.
+- Recorridos completos de los cuatro planes con mouse y teclado en escritorio, tablet y mobile: validación, datos al volver, resumen sin envío, cierre con botón/Escape/fondo y retorno del foco. Los tests conservan la comprobación de extras propios al cambiar de plan.
+- Lint, TypeScript, 26 tests y build correctos. Prettier limitado a archivos modificados. No se agregaron dependencias.
+- Capturas temporales: `/tmp/linustec-planes-*-20261016.png`, `/tmp/linustec-planes-expanded-*-20261016.png` y `/tmp/linustec-configurador-*-20261016.png`.

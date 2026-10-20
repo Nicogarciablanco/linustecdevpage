@@ -1,0 +1,243 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
+import { ThemeProvider } from 'styled-components'
+import { PlanConfigurator } from '../features/plan-configurator/PlanConfigurator'
+import { plans, planContent } from '../data/plans'
+import { theme } from '../app/styles/theme'
+
+vi.mock('../features/plan-configurator/Turnstile', () => ({
+  Turnstile: ({ onToken }: { onToken: (token: string) => void }) => (
+    <button type="button" onClick={() => onToken('test-token')}>
+      Completar verificación de prueba
+    </button>
+  ),
+}))
+beforeEach(() => {
+  vi.stubEnv('VITE_TURNSTILE_SITE_KEY', 'public-test-key-not-a-secret')
+  Object.defineProperty(HTMLDialogElement.prototype, 'showModal', {
+    configurable: true,
+    value: function (this: HTMLDialogElement) {
+      this.setAttribute('open', '')
+    },
+  })
+  Object.defineProperty(HTMLDialogElement.prototype, 'close', {
+    configurable: true,
+    value: function (this: HTMLDialogElement) {
+      this.removeAttribute('open')
+    },
+  })
+  Object.defineProperty(HTMLElement.prototype, 'scrollTo', {
+    configurable: true,
+    value: vi.fn(),
+  })
+})
+afterEach(() => {
+  cleanup()
+  vi.unstubAllGlobals()
+  vi.unstubAllEnvs()
+})
+
+function review() {
+  const onClose = vi.fn()
+  render(
+    <ThemeProvider theme={theme}>
+      <PlanConfigurator
+        plan={plans.find((plan) => plan.id === 'medida')!}
+        opener={null}
+        onClose={onClose}
+      />
+    </ThemeProvider>,
+  )
+  for (const [label, value] of [
+    ['Tu nombre', 'Nicolás Pérez'],
+    ['Negocio o actividad', 'Estudio Sur'],
+    ['Correo electrónico', 'nico@example.com'],
+    ['WhatsApp', '11 5555 4444'],
+    ['¿Qué necesitás?', 'Proyecto con funciones propias.'],
+    ['Enlace al material', 'https://drive.google.com/drive/folders/example'],
+  ] as const)
+    fireEvent.change(screen.getByLabelText(label), { target: { value } })
+  fireEvent.click(screen.getByRole('button', { name: 'Ver resumen' }))
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Completar verificación de prueba' }),
+  )
+  return onClose
+}
+
+describe('consultation submission UI', () => {
+  it('shows the required shared-material URL as text in review and submits it', async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(
+        Response.json({ ok: true, id: 'provider-confirmed-id' }),
+      )
+    vi.stubGlobal('fetch', fetcher)
+    render(
+      <ThemeProvider theme={theme}>
+        <PlanConfigurator
+          plan={plans.find((plan) => plan.id === 'medida')!}
+          opener={null}
+          onClose={vi.fn()}
+        />
+      </ThemeProvider>,
+    )
+    for (const [label, value] of [
+      ['Tu nombre', 'Nicolás Pérez'],
+      ['Negocio o actividad', 'Estudio Sur'],
+      ['Correo electrónico', 'nico@example.com'],
+      ['WhatsApp', '11 5555 4444'],
+      ['¿Qué necesitás?', 'Proyecto con funciones propias.'],
+    ] as const)
+      fireEvent.change(screen.getByLabelText(label), { target: { value } })
+    const link = 'https://drive.google.com/drive/folders/example'
+    fireEvent.change(screen.getByLabelText('Enlace al material'), {
+      target: { value: link },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Ver resumen' }))
+    expect(screen.getByText(link)).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: link })).not.toBeInTheDocument()
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Completar verificación de prueba' }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar consulta' }))
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1))
+    const payload = JSON.parse(fetcher.mock.calls[0]![1].body)
+    expect(payload.materialUrl).toBe(link)
+    expect(payload).not.toHaveProperty('files')
+  })
+  it('requires an HTTP(S) folder link before review', () => {
+    vi.stubGlobal('fetch', vi.fn())
+    render(
+      <ThemeProvider theme={theme}>
+        <PlanConfigurator
+          plan={plans.find((plan) => plan.id === 'medida')!}
+          opener={null}
+          onClose={vi.fn()}
+        />
+      </ThemeProvider>,
+    )
+    for (const [label, value] of [
+      ['Tu nombre', 'Nicolás Pérez'],
+      ['Negocio o actividad', 'Estudio Sur'],
+      ['Correo electrónico', 'nico@example.com'],
+      ['WhatsApp', '11 5555 4444'],
+      ['¿Qué necesitás?', 'Proyecto con funciones propias.'],
+    ] as const)
+      fireEvent.change(screen.getByLabelText(label), { target: { value } })
+    fireEvent.click(screen.getByRole('button', { name: 'Ver resumen' }))
+    expect(
+      screen.getByText(planContent.form.materialUrl.error),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText('Enlace al material')).toHaveFocus()
+    fireEvent.change(screen.getByLabelText('Enlace al material'), {
+      target: { value: 'ftp://example.com/file' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Ver resumen' }))
+    expect(
+      screen.getByText(planContent.form.materialUrl.error),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByLabelText('Logo, textos, fotos o referencias'),
+    ).not.toBeInTheDocument()
+  })
+  it('shows success only after a provider-confirmed response and prevents parallel submissions', async () => {
+    let resolve!: (response: Response) => void
+    const fetcher = vi.fn(
+      () =>
+        new Promise<Response>((done) => {
+          resolve = done
+        }),
+    )
+    vi.stubGlobal('fetch', fetcher)
+    const onClose = review()
+    const button = screen.getByRole('button', { name: 'Enviar consulta' })
+    fireEvent.click(button)
+    fireEvent.click(button)
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1))
+    expect(
+      screen.queryByText(planContent.submission.success),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Cerrar configurador' }),
+    ).toBeDisabled()
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+    expect(onClose).not.toHaveBeenCalled()
+    resolve(Response.json({ ok: true, id: 'provider-confirmed-id' }))
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        planContent.submission.success,
+      ),
+    )
+    expect(
+      screen.getByRole('button', { name: 'Consulta enviada' }),
+    ).toBeDisabled()
+    expect(
+      screen.getByRole('button', { name: 'Cerrar configurador' }),
+    ).not.toBeDisabled()
+  })
+  it('retains the draft and reuses the request ID on a failed send and retry', async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({ ok: false, code: 'mail_unconfirmed' }, { status: 502 }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({ ok: true, id: 'provider-confirmed-id' }),
+      )
+    vi.stubGlobal('fetch', fetcher)
+    review()
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar consulta' }))
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        planContent.submission.errors.mail_unconfirmed,
+      ),
+    )
+    expect(screen.getByText('Nicolás Pérez')).toBeInTheDocument()
+    expect(
+      screen.getByText('Proyecto con funciones propias.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Enviar consulta' }),
+    ).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Volver' }))
+    expect(screen.getByLabelText('Tu nombre')).toHaveValue('Nicolás Pérez')
+    fireEvent.click(screen.getByRole('button', { name: 'Ver resumen' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Completar verificación de prueba' }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar consulta' }))
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        planContent.submission.success,
+      ),
+    )
+    const first = JSON.parse(fetcher.mock.calls[0]![1].body)
+    const second = JSON.parse(fetcher.mock.calls[1]![1].body)
+    expect(first.requestId).toBe(second.requestId)
+    expect(first.contact).toEqual(second.contact)
+  })
+  it.each([
+    Response.json({ ok: true }),
+    Response.json({ ok: false, code: 'invalid_token' }, { status: 400 }),
+    Response.json({ ok: false, code: 'rate_limited' }, { status: 429 }),
+    new Response('<html>proxy error</html>', { status: 502 }),
+  ])(
+    'does not show success for malformed responses or rejection',
+    async (response) => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response))
+      review()
+      fireEvent.click(screen.getByRole('button', { name: 'Enviar consulta' }))
+      await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
+      expect(
+        screen.queryByText(planContent.submission.success),
+      ).not.toBeInTheDocument()
+      expect(screen.getByText('nico@example.com')).toBeInTheDocument()
+    },
+  )
+})

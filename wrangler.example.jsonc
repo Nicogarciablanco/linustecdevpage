@@ -1,0 +1,12 @@
+{
+  // Solo para Workers con assets; no es configuración activa ni crea un proyecto.
+  // Integrar con el nombre y la configuración del Worker existente.
+  "name": "replace-with-existing-worker-name",
+  "main": "server/worker.ts",
+  "compatibility_date": "2026-10-16",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"],
+  },
+}

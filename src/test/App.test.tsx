@@ -236,13 +236,13 @@ describe('landing', () => {
     const contactLink = screen.getByRole('link', {
       name: 'Contame tu proyecto',
     })
-    const checks = document.querySelectorAll('#planes li > svg')
+    const cardArrows = document.querySelectorAll('#planes article button > svg')
     const cursorIcon = document.querySelector('[data-visible] svg')
     expect(plansLink.querySelector('svg')).toHaveAttribute('width', '16')
     expect(contactLink.querySelector('svg')).toHaveAttribute('width', '16')
-    expect(checks.length).toBeGreaterThan(0)
+    expect(cardArrows).toHaveLength(4)
     expect(
-      [...checks].every(
+      [...cardArrows].every(
         (icon) =>
           icon.getAttribute('width') === '16' &&
           icon.getAttribute('aria-hidden') === 'true',
@@ -493,7 +493,7 @@ describe('landing', () => {
     const cursor = document.querySelector<HTMLElement>(
       '#planes [data-visible]',
     )!
-    expect(cards).toHaveLength(3)
+    expect(cards).toHaveLength(4)
     expect(
       new Set(cards.map((card) => getComputedStyle(card).borderColor)).size,
     ).toBe(1)
@@ -530,9 +530,9 @@ describe('landing', () => {
     expect(cursor).toHaveAttribute('data-visible', 'false')
   })
   it.each([
-    [0, 'Plan gastronómico', 'Carta QR'],
-    [1, 'Plan institucional', 'Galería de trabajos'],
-    [2, 'Plan a medida', 'Segundo idioma'],
+    [0, 'Plan gastronómico', 'Reservas de mesas'],
+    [1, 'Servicios y reservas', 'Panel para editar servicios y productos'],
+    [2, 'Presentación institucional', 'Galería de trabajos o fotos'],
   ])('opens correct configurator for plan %i', (index, title, check) => {
     setup()
     openPlan(index)
@@ -544,6 +544,153 @@ describe('landing', () => {
       within(dialog).getByRole('checkbox', { name: new RegExp(check) }),
     ).toBeInTheDocument()
   })
+  it('starts A medida with the idea form and no automatic extras', () => {
+    setup()
+    fireEvent.click(screen.getByRole('button', { name: 'Contame tu idea' }))
+    const dialog = screen.getByRole('dialog')
+    expect(
+      within(dialog).getByRole('heading', { name: 'Proyecto a medida' }),
+    ).toBeInTheDocument()
+    expect(within(dialog).getByLabelText('¿Qué necesitás?')).toBeInTheDocument()
+    expect(
+      within(dialog).queryByText('Opciones de la solución base'),
+    ).not.toBeInTheDocument()
+  })
+  it('opens cards without covering the material disclosure', () => {
+    setup()
+    const card = document.querySelector('#planes article')!
+    fireEvent.click(
+      within(card as HTMLElement).getByText('Material que necesitamos de vos'),
+    )
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    fireEvent.click(
+      within(card as HTMLElement).getByRole('heading', { level: 3 }),
+    )
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+  it('keeps the three plan disclosures independent and extras separate from the base', () => {
+    setup()
+    const cards = document.querySelectorAll('#planes article')
+    for (const card of cards) {
+      const details = [...card.querySelectorAll('details')]
+      expect(
+        details.map((item) => item.querySelector('summary')?.textContent),
+      ).toEqual([
+        'Qué incluye',
+        'Extras y funciones adicionales',
+        'Material que necesitamos de vos',
+      ])
+      fireEvent.click(details[0]!.querySelector('summary')!)
+      fireEvent.click(details[1]!.querySelector('summary')!)
+      expect(details[0]).toHaveAttribute('open')
+      expect(details[1]).toHaveAttribute('open')
+      fireEvent.click(details[0]!.querySelector('summary')!)
+      expect(details[0]).not.toHaveAttribute('open')
+      expect(details[1]).toHaveAttribute('open')
+      expect(details[2]).not.toHaveAttribute('open')
+    }
+    const gastronomic = cards[0]!.querySelectorAll('details')
+    expect(gastronomic[0]).not.toHaveTextContent('Reservas de mesas')
+    expect(gastronomic[1]).toHaveTextContent('Reservas de mesas')
+    expect(gastronomic[1]).toHaveTextContent('+ AR$***')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+  it('keeps selected extras and form data through review and back', () => {
+    setup()
+    openPlan(0)
+    const dialog = screen.getByRole('dialog')
+    fireEvent.click(
+      within(dialog).getByRole('checkbox', { name: /Reservas de mesas/ }),
+    )
+    expect(within(dialog).getByLabelText('Tu selección')).toHaveTextContent(
+      'Reservas de mesas',
+    )
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Completar solicitud' }),
+    )
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Ver resumen' }))
+    expect(within(dialog).getByText('Ingresá tu nombre.')).toBeInTheDocument()
+    expect(within(dialog).getByLabelText('Tu nombre')).toHaveFocus()
+    fireEvent.change(within(dialog).getByLabelText('Tu nombre'), {
+      target: { value: 'Nicolás Pérez' },
+    })
+    fireEvent.change(within(dialog).getByLabelText('Negocio o actividad'), {
+      target: { value: 'Café Sur' },
+    })
+    fireEvent.change(within(dialog).getByLabelText('Correo electrónico'), {
+      target: { value: 'nico@cafe.com' },
+    })
+    fireEvent.change(within(dialog).getByLabelText('WhatsApp'), {
+      target: { value: '11 5555 4444' },
+    })
+    fireEvent.change(within(dialog).getByLabelText('¿Qué necesitás?'), {
+      target: { value: 'Carta y pedidos' },
+    })
+    fireEvent.change(within(dialog).getByLabelText('Enlace al material'), {
+      target: { value: 'https://drive.google.com/drive/folders/example' },
+    })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Ver resumen' }))
+    expect(within(dialog).getByText('Nicolás Pérez')).toBeInTheDocument()
+    expect(
+      within(dialog).getByText(
+        'https://drive.google.com/drive/folders/example',
+      ),
+    ).toBeInTheDocument()
+    expect(within(dialog).getByText('Reservas de mesas')).toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Volver' }))
+    expect(within(dialog).getByLabelText('Tu nombre')).toHaveValue(
+      'Nicolás Pérez',
+    )
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Volver' }))
+    expect(
+      within(dialog).getByRole('checkbox', { name: /Reservas de mesas/ }),
+    ).toBeChecked()
+  })
+  it('resets plan-specific options when another plan opens', () => {
+    setup()
+    openPlan(0)
+    fireEvent.click(screen.getByRole('checkbox', { name: /Reservas de mesas/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar configurador' }))
+    openPlan(1)
+    expect(
+      screen.getByRole('checkbox', {
+        name: /Panel para editar servicios y productos/,
+      }),
+    ).not.toBeChecked()
+    expect(
+      screen.queryByRole('checkbox', { name: /Reservas de mesas/ }),
+    ).not.toBeInTheDocument()
+  })
+  it('keeps sending disabled when Turnstile is not configured', () => {
+    setup()
+    fireEvent.click(screen.getByRole('button', { name: 'Contame tu idea' }))
+    const dialog = screen.getByRole('dialog')
+    for (const [label, value] of [
+      ['Tu nombre', 'Nicolás Pérez'],
+      ['Negocio o actividad', 'Estudio Sur'],
+      ['Correo electrónico', 'nico@estudio.com'],
+      ['WhatsApp', '11 5555 4444'],
+      ['¿Qué necesitás?', 'Una solución a medida'],
+      ['Enlace al material', 'https://drive.google.com/drive/folders/example'],
+    ] as const) {
+      fireEvent.change(within(dialog).getByLabelText(label), {
+        target: { value },
+      })
+    }
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Ver resumen' }))
+    expect(
+      within(dialog).getAllByText(
+        /Revisá los datos y el material antes de enviar tu consulta\./,
+      ),
+    ).toHaveLength(2)
+    expect(within(dialog).getAllByText('A cotizar')).toHaveLength(2)
+    expect(
+      within(dialog).getByRole('button', { name: 'Enviar consulta' }),
+    ).toBeDisabled()
+    expect(within(dialog).getByRole('status')).toHaveTextContent(
+      'El envío todavía no está habilitado.',
+    )
+  })
   it('closes with the icon button and restores focus', async () => {
     setup()
     const opener = screen.getAllByRole('button', {
@@ -552,7 +699,7 @@ describe('landing', () => {
     opener.focus()
     fireEvent.click(opener)
     expect(
-      screen.getByRole('button', { name: 'Cerrar configurador' }),
+      screen.getByRole('heading', { name: 'Plan gastronómico' }),
     ).toHaveFocus()
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar configurador' }))
     await waitFor(() =>

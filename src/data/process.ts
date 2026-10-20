@@ -7,7 +7,7 @@ export const processSteps = [
   {
     number: '02',
     title: 'Enviás',
-    copy: 'Completás el formulario guiado y adjuntás logo, textos e imágenes.',
+    copy: 'Completás el formulario guiado y compartís el enlace a la carpeta con tus materiales.',
   },
   {
     number: '03',

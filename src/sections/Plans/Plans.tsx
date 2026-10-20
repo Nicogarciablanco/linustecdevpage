@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowUpRight, Checkmark } from '@carbon/icons-react'
+import { ArrowUpRight } from '@carbon/icons-react'
 import { useEffect, useRef } from 'react'
 import type { PointerEvent } from 'react'
 import {
@@ -7,15 +7,10 @@ import {
   SectionCopy,
   SectionHead,
 } from '../../components/ui/Layout'
-import { plans } from '../../data/plans'
+import { planContent, plans } from '../../data/plans'
 import type { PlanId } from '../../types/plan'
-import {
-  PlanButton,
-  PlanCard,
-  PlanCursor,
-  PlanGrid,
-  PlansSection,
-} from './Plans.styles'
+import { PlanCard } from './PlanCard'
+import { PlanCursor, PlanGrid, PlansSection } from './Plans.styles'
 
 export function Plans({
   onSelect,
@@ -86,54 +81,30 @@ export function Plans({
         <SectionHead>
           <div>
             <DisplayHeading>
-              Elegí un plan. Adaptalo a{' '}
-              <span className="accent">tu negocio.</span>
+              {planContent.heading}{' '}
+              <span className="accent">{planContent.headingAccent}</span>
             </DisplayHeading>
-            <SectionCopy>
-              Los planes se configuran online. Elegís una base, sumás extras y
-              definís una primera versión de lo que necesitás.
-            </SectionCopy>
+            <SectionCopy>{planContent.introduction}</SectionCopy>
           </div>
         </SectionHead>
         <PlanGrid>
           {plans.map((plan) => (
             <PlanCard
               key={plan.id}
+              plan={plan}
+              selected={selectedId === plan.id}
               onPointerEnter={showCursor}
               onPointerMove={moveCursor}
               onPointerLeave={hideCursor}
               onPointerCancel={hideCursor}
-            >
-              <span className="number">
-                {plan.number} / {plan.label}
-              </span>
-              <h3>{plan.headline}</h3>
-              <p>{plan.audience}</p>
-              <ul>
-                {plan.features.map((feature) => (
-                  <li key={feature}>
-                    <Checkmark size={16} aria-hidden="true" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-              <PlanButton
-                type="button"
-                aria-haspopup="dialog"
-                aria-expanded={selectedId === plan.id}
-                aria-controls={
-                  selectedId === plan.id ? 'plan-dialog' : undefined
-                }
-                onClick={(event) => {
-                  hideCursor()
-                  onSelect(plan.id, event.currentTarget)
-                }}
-              >
-                Configurar plan <ArrowRight size={16} aria-hidden="true" />
-              </PlanButton>
-            </PlanCard>
+              onSelect={(button) => {
+                hideCursor()
+                onSelect(plan.id, button)
+              }}
+            />
           ))}
         </PlanGrid>
+        <p className="plans-note">{planContent.priceNote}</p>
         <PlanCursor ref={cursorRef} aria-hidden="true" data-visible="false">
           <ArrowUpRight size={24} aria-hidden="true" />
         </PlanCursor>

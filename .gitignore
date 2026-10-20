@@ -3,3 +3,8 @@ dist/
 *.tsbuildinfo
 .vite/
 playwright-report/
+.env*
+!.env.example
+.dev.vars*
+.wrangler/
+apiresendkey.md
