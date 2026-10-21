@@ -23,7 +23,7 @@ afterEach(() => {
     .forEach((script) => script.remove())
 })
 
-it('loads Turnstile at review, retries a failed load and reuses the successful script', async () => {
+it('loads Turnstile at review and retries a widget error without reloading api.js', async () => {
   vi.stubEnv('VITE_TURNSTILE_SITE_KEY', 'public-test-site-key')
   vi.stubGlobal(
     'IntersectionObserver',
@@ -52,21 +52,21 @@ it('loads Turnstile at review, retries a failed load and reuses the successful s
   })
   const fetcher = vi.fn()
   vi.stubGlobal('fetch', fetcher)
-  let ready: (() => void) | undefined
   let widgetOptions: Record<string, unknown> = {}
+  let widgetCount = 0
   const renderWidget = vi.fn(
     (_container: HTMLElement, options: Record<string, unknown>) => {
       widgetOptions = options
-      return 'widget-1'
+      return `widget-${++widgetCount}`
     },
   )
+  const resetWidget = vi.fn()
+  const removeWidget = vi.fn()
+  const warnings = vi.spyOn(console, 'warn').mockImplementation(() => {})
   window.turnstile = {
-    ready: (callback) => {
-      ready = callback
-    },
     render: renderWidget,
-    reset: vi.fn(),
-    remove: vi.fn(),
+    reset: resetWidget,
+    remove: removeWidget,
   }
   const insert = vi.spyOn(document.head, 'appendChild')
   const insertedScripts = () =>
@@ -104,12 +104,29 @@ it('loads Turnstile at review, retries a failed load and reuses the successful s
     fireEvent.change(screen.getByLabelText(label), { target: { value } })
   fireEvent.click(screen.getByRole('button', { name: 'Ver resumen' }))
   expect(insertedScripts()).toHaveLength(1)
-  const failedScript = currentScript()!
+  const script = currentScript()!
+  const callbackName = new URL(script.src).searchParams.get('onload')!
   expect(renderWidget).not.toHaveBeenCalled()
   await act(async () => {
-    fireEvent.error(failedScript)
+    fireEvent.load(script)
+    expect(renderWidget).not.toHaveBeenCalled()
+    ;(Reflect.get(window, callbackName) as () => void)()
+    await Promise.resolve()
   })
-  expect(failedScript.isConnected).toBe(false)
+  expect(renderWidget).toHaveBeenCalledTimes(1)
+  expect(widgetOptions.retry).toBe('never')
+  expect(Reflect.get(window, callbackName)).toBeUndefined()
+  await act(async () => {
+    ;(widgetOptions.callback as (token: string) => void)('first-token')
+  })
+  expect(screen.getByRole('button', { name: 'Enviar consulta' })).toBeEnabled()
+  await act(async () => {
+    ;(widgetOptions['error-callback'] as (code: string) => void)('600010')
+  })
+  expect(screen.getByRole('button', { name: 'Enviar consulta' })).toBeDisabled()
+  expect(resetWidget).not.toHaveBeenCalled()
+  expect(warnings).toHaveBeenCalledWith('Turnstile error:', '600010')
+  expect(JSON.stringify(warnings.mock.calls)).not.toContain('first-token')
   expect(screen.getByRole('alert')).toHaveTextContent(
     planContent.submission.verificationError,
   )
@@ -119,18 +136,9 @@ it('loads Turnstile at review, retries a failed load and reuses the successful s
       name: planContent.submission.retryVerification,
     }),
   )
-  expect(insertedScripts()).toHaveLength(2)
-  const retryScript = currentScript()!
-  expect(retryScript).not.toBe(failedScript)
-  expect(
-    document.querySelectorAll('script[src*="turnstile/v0/api.js"]'),
-  ).toHaveLength(1)
-  await act(async () => {
-    fireEvent.load(retryScript)
-    ready!()
-    await Promise.resolve()
-  })
-  expect(renderWidget).toHaveBeenCalledTimes(1)
+  await waitFor(() => expect(renderWidget).toHaveBeenCalledTimes(2))
+  expect(insertedScripts()).toHaveLength(1)
+  expect(removeWidget).toHaveBeenCalledWith('widget-1')
   await act(async () => {
     ;(widgetOptions.callback as (token: string) => void)('fresh-token')
   })
@@ -140,7 +148,7 @@ it('loads Turnstile at review, retries a failed load and reuses the successful s
   fireEvent.click(screen.getByRole('button', { name: 'Volver' }))
   expect(screen.getByLabelText('Tu nombre')).toHaveValue('Nicolás Pérez')
   fireEvent.click(screen.getByRole('button', { name: 'Ver resumen' }))
-  await waitFor(() => expect(renderWidget).toHaveBeenCalledTimes(2))
-  expect(insertedScripts()).toHaveLength(2)
+  await waitFor(() => expect(renderWidget).toHaveBeenCalledTimes(3))
+  expect(insertedScripts()).toHaveLength(1)
   expect(fetcher).not.toHaveBeenCalled()
 })
