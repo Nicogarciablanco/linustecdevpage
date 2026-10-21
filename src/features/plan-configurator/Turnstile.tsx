@@ -19,42 +19,54 @@ export function Turnstile({
     let cancelled = false
     let widget: string | undefined
     let api: TurnstileApi | undefined
-    let errorResetAttempted = false
     onToken('')
     onUnavailable(false)
-    function resetWidget(reportError: boolean) {
+    function resetExpiredWidget() {
       if (cancelled) return
       onToken('')
-      if (reportError) onUnavailable(true)
       if (!api || widget === undefined) return
-      if (reportError && errorResetAttempted) return
-      if (reportError) errorResetAttempted = true
       try {
         api.reset(widget)
       } catch {
         onUnavailable(true)
       }
     }
+    function reportWidgetError(code?: unknown) {
+      if (cancelled) return
+      onToken('')
+      onUnavailable(true)
+      const errorCode =
+        typeof code === 'number' && Number.isInteger(code) ? String(code) : code
+      if (typeof errorCode === 'string' && /^\d{3,6}$/.test(errorCode))
+        console.warn('Turnstile error:', errorCode)
+    }
     void loadTurnstile()
       .then((loaded) => {
         if (cancelled || !container.current) return
         api = loaded
-        widget = loaded.render(container.current, {
-          sitekey: siteKey,
-          action: consultationPolicy.action,
-          size: 'compact',
-          theme: 'light',
-          callback: (token: string) => {
-            if (!cancelled) {
-              errorResetAttempted = false
-              onUnavailable(false)
-              onToken(token)
-            }
-          },
-          'expired-callback': () => resetWidget(false),
-          'error-callback': () => resetWidget(true),
-          'timeout-callback': () => resetWidget(true),
-        })
+        try {
+          widget = loaded.render(container.current, {
+            sitekey: siteKey,
+            action: consultationPolicy.action,
+            size: 'compact',
+            theme: 'light',
+            retry: 'never',
+            'refresh-expired': 'manual',
+            'refresh-timeout': 'manual',
+            callback: (token: string) => {
+              if (!cancelled) {
+                onUnavailable(false)
+                onToken(token)
+              }
+            },
+            'expired-callback': resetExpiredWidget,
+            'error-callback': (code: unknown) => reportWidgetError(code),
+            'timeout-callback': () => reportWidgetError(),
+          })
+        } catch {
+          console.warn('Turnstile widget:', 'render-error')
+          onUnavailable(true)
+        }
       })
       .catch(() => {
         if (!cancelled) onUnavailable(true)
