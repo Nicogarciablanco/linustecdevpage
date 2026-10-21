@@ -61,7 +61,13 @@ export function Turnstile({
       })
     return () => {
       cancelled = true
-      if (api && widget !== undefined) api.remove(widget)
+      if (api && widget !== undefined) {
+        try {
+          api.remove(widget)
+        } catch {
+          // Turnstile may already have discarded a failed widget.
+        }
+      }
     }
   }, [siteKey, resetKey, onToken, onUnavailable])
   return <div ref={container} />

@@ -58,7 +58,7 @@ afterEach(() => {
     .forEach((script) => script.remove())
 })
 
-it('submits on cold load, then replaces expired, errored and stale tokens', async () => {
+it('waits for delayed api.js and retries initial load and discarded widgets', async () => {
   vi.useFakeTimers()
   vi.stubEnv('VITE_TURNSTILE_SITE_KEY', 'public-test-site-key')
   installDialogMethods()
@@ -68,35 +68,63 @@ it('submits on cold load, then replaces expired, errored and stale tokens', asyn
       Promise.resolve(Response.json({ ok: true, id: 'provider-confirmed-id' })),
     )
   vi.stubGlobal('fetch', fetcher)
-  const loading = loadTurnstile()
   let ready: (() => void) | undefined
+  const registerReady = vi.fn((callback: () => void) => {
+    ready = callback
+  })
   let options: Record<string, unknown> = {}
+  let renderedWidgetCount = 0
   const reset = vi.fn()
+  const remove = vi.fn()
   const renderWidget = vi.fn(
     (_container: HTMLElement, settings: Record<string, unknown>) => {
       options = settings
-      return 'widget-1'
+      return `widget-${++renderedWidgetCount}`
     },
   )
   window.turnstile = {
-    ready: (callback) => {
-      ready = callback
-    },
+    ready: registerReady,
     render: renderWidget,
     reset,
-    remove: vi.fn(),
+    remove,
   }
+  // The global can exist before api.js finishes loading.
+  const firstLoading = loadTurnstile().catch(() => undefined)
   openReview()
   expect(screen.getByRole('button', { name: 'Enviar consulta' })).toBeDisabled()
+  const firstScript = document.querySelector<HTMLScriptElement>(
+    'script[src*="turnstile/v0/api.js"]',
+  )!
   await act(async () => {
     await vi.advanceTimersByTimeAsync(16_000)
-    fireEvent.load(
-      document.querySelector('script[src*="turnstile/v0/api.js"]')!,
-    )
-    expect(renderWidget).not.toHaveBeenCalled()
-    ready!()
-    await loading
+    expect(registerReady).not.toHaveBeenCalled()
+    fireEvent.error(firstScript)
+    await firstLoading
   })
+  expect(firstScript.isConnected).toBe(false)
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    planContent.submission.verificationError,
+  )
+  await act(async () => {
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: planContent.submission.retryVerification,
+      }),
+    )
+  })
+  const retryScript = document.querySelector<HTMLScriptElement>(
+    'script[src*="turnstile/v0/api.js"]',
+  )!
+  expect(retryScript).not.toBe(firstScript)
+  expect(registerReady).not.toHaveBeenCalled()
+  expect(renderWidget).not.toHaveBeenCalled()
+  await act(async () => {
+    fireEvent.load(retryScript)
+    expect(registerReady).toHaveBeenCalledTimes(1)
+    ready!()
+    await Promise.resolve()
+  })
+  expect(renderWidget).toHaveBeenCalledTimes(1)
   await act(async () => {
     ;(options.callback as (token: string) => void)('first-token')
   })
@@ -124,10 +152,13 @@ it('submits on cold load, then replaces expired, errored and stale tokens', asyn
   await act(async () => {
     ;(options['expired-callback'] as () => void)()
   })
-  expect(reset).toHaveBeenCalledWith('widget-1')
+  expect(reset).toHaveBeenCalledWith('widget-2')
   expect(screen.getByRole('button', { name: 'Enviar consulta' })).toBeDisabled()
   await act(async () => {
     ;(options.callback as (token: string) => void)('third-token')
+  })
+  reset.mockImplementationOnce(() => {
+    throw new Error('Widget already discarded')
   })
   await act(async () => {
     ;(options['error-callback'] as () => void)()
@@ -137,6 +168,24 @@ it('submits on cold load, then replaces expired, errored and stale tokens', asyn
   expect(screen.getByRole('alert')).toHaveTextContent(
     planContent.submission.verificationError,
   )
+  const discardedOptions = options
+  remove.mockImplementationOnce(() => {
+    throw new Error('Widget already discarded')
+  })
+  await act(async () => {
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: planContent.submission.retryVerification,
+      }),
+    )
+    await Promise.resolve()
+  })
+  expect(remove).toHaveBeenCalledWith('widget-2')
+  expect(renderWidget).toHaveBeenCalledTimes(3)
+  await act(async () => {
+    ;(discardedOptions.callback as (token: string) => void)('removed-token')
+  })
+  expect(screen.getByRole('button', { name: 'Enviar consulta' })).toBeDisabled()
   await act(async () => {
     ;(options.callback as (token: string) => void)('fresh-token')
   })

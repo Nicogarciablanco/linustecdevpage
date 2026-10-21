@@ -16,66 +16,49 @@ const loadTimeoutMs = 30_000
 
 export function loadTurnstile(): Promise<TurnstileApi> {
   if (scriptPromise) return scriptPromise
-  if (window.turnstile) {
+  let resolveLoad!: (api: TurnstileApi) => void
+  let rejectLoad!: (error: Error) => void
+  const pending = new Promise<TurnstileApi>((resolve, reject) => {
+    resolveLoad = resolve
+    rejectLoad = reject
+  })
+  scriptPromise = pending
+  const script = document.createElement('script')
+  let settled = false
+  const timer = window.setTimeout(() => fail(), loadTimeoutMs)
+  function fail() {
+    if (settled) return
+    settled = true
+    window.clearTimeout(timer)
+    script.remove()
+    scriptPromise = null
+    rejectLoad(new Error('Turnstile unavailable'))
+  }
+  script.src =
+    'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
+  script.async = true
+  script.onerror = fail
+  script.onload = () => {
+    if (settled || !window.turnstile) {
+      fail()
+      return
+    }
     const api = window.turnstile
-    scriptPromise = new Promise((resolve, reject) => {
-      let settled = false
-      const timer = window.setTimeout(() => fail(), loadTimeoutMs)
-      function fail() {
+    try {
+      api.ready(() => {
         if (settled) return
         settled = true
-        scriptPromise = null
-        reject(new Error('Turnstile unavailable'))
-      }
-      queueMicrotask(() => {
-        try {
-          api.ready(() => {
-            if (settled) return
-            settled = true
-            window.clearTimeout(timer)
-            resolve(api)
-          })
-        } catch {
-          window.clearTimeout(timer)
-          fail()
-        }
+        window.clearTimeout(timer)
+        resolveLoad(api)
       })
-    })
-    return scriptPromise
+    } catch {
+      fail()
+    }
   }
-  scriptPromise = new Promise((resolve, reject) => {
-    const script = document.createElement('script')
-    let settled = false
-    const timer = window.setTimeout(() => fail(), loadTimeoutMs)
-    function fail() {
-      if (settled) return
-      settled = true
-      window.clearTimeout(timer)
-      script.remove()
-      scriptPromise = null
-      reject(new Error('Turnstile unavailable'))
-    }
-    script.src =
-      'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
-    script.async = true
-    script.onerror = fail
-    script.onload = () => {
-      if (!window.turnstile) {
-        fail()
-        return
-      }
-      try {
-        window.turnstile.ready(() => {
-          if (settled) return
-          settled = true
-          window.clearTimeout(timer)
-          resolve(window.turnstile!)
-        })
-      } catch {
-        fail()
-      }
-    }
+  try {
     document.head.appendChild(script)
-  })
-  return scriptPromise
+  } catch {
+    fail()
+  }
+  return pending
 }
