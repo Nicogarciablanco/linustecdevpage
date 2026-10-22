@@ -4,7 +4,6 @@ import { ThemeProvider } from 'styled-components'
 import { theme } from '../app/styles/theme'
 import { plans, planContent } from '../data/plans'
 import { PlanConfigurator } from '../features/plan-configurator/PlanConfigurator'
-import { loadTurnstile } from '../features/plan-configurator/turnstileLoader'
 
 function openReview() {
   render(
@@ -49,6 +48,7 @@ function installDialogMethods() {
 
 afterEach(() => {
   cleanup()
+  vi.restoreAllMocks()
   vi.useRealTimers()
   vi.unstubAllGlobals()
   vi.unstubAllEnvs()
@@ -68,10 +68,7 @@ it('waits for delayed api.js and retries initial load and discarded widgets', as
       Promise.resolve(Response.json({ ok: true, id: 'provider-confirmed-id' })),
     )
   vi.stubGlobal('fetch', fetcher)
-  let ready: (() => void) | undefined
-  const registerReady = vi.fn((callback: () => void) => {
-    ready = callback
-  })
+  const warnings = vi.spyOn(console, 'warn').mockImplementation(() => {})
   let options: Record<string, unknown> = {}
   let renderedWidgetCount = 0
   const reset = vi.fn()
@@ -83,13 +80,11 @@ it('waits for delayed api.js and retries initial load and discarded widgets', as
     },
   )
   window.turnstile = {
-    ready: registerReady,
     render: renderWidget,
     reset,
     remove,
   }
-  // The global can exist before api.js finishes loading.
-  const firstLoading = loadTurnstile().catch(() => undefined)
+  // The global can exist before Cloudflare calls the script's onload callback.
   openReview()
   expect(screen.getByRole('button', { name: 'Enviar consulta' })).toBeDisabled()
   const firstScript = document.querySelector<HTMLScriptElement>(
@@ -97,11 +92,12 @@ it('waits for delayed api.js and retries initial load and discarded widgets', as
   )!
   await act(async () => {
     await vi.advanceTimersByTimeAsync(16_000)
-    expect(registerReady).not.toHaveBeenCalled()
+    fireEvent.load(firstScript)
+    expect(renderWidget).not.toHaveBeenCalled()
     fireEvent.error(firstScript)
-    await firstLoading
   })
   expect(firstScript.isConnected).toBe(false)
+  expect(warnings).toHaveBeenCalledWith('Turnstile load:', 'script-error')
   expect(screen.getByRole('alert')).toHaveTextContent(
     planContent.submission.verificationError,
   )
@@ -116,14 +112,15 @@ it('waits for delayed api.js and retries initial load and discarded widgets', as
     'script[src*="turnstile/v0/api.js"]',
   )!
   expect(retryScript).not.toBe(firstScript)
-  expect(registerReady).not.toHaveBeenCalled()
   expect(renderWidget).not.toHaveBeenCalled()
+  const callbackName = new URL(retryScript.src).searchParams.get('onload')!
   await act(async () => {
     fireEvent.load(retryScript)
-    expect(registerReady).toHaveBeenCalledTimes(1)
-    ready!()
+    expect(renderWidget).not.toHaveBeenCalled()
+    ;(Reflect.get(window, callbackName) as () => void)()
     await Promise.resolve()
   })
+  expect(Reflect.get(window, callbackName)).toBeUndefined()
   expect(renderWidget).toHaveBeenCalledTimes(1)
   await act(async () => {
     ;(options.callback as (token: string) => void)('first-token')
@@ -157,13 +154,12 @@ it('waits for delayed api.js and retries initial load and discarded widgets', as
   await act(async () => {
     ;(options.callback as (token: string) => void)('third-token')
   })
-  reset.mockImplementationOnce(() => {
-    throw new Error('Widget already discarded')
-  })
   await act(async () => {
-    ;(options['error-callback'] as () => void)()
+    ;(options['error-callback'] as (code: string) => void)('600010')
   })
-  expect(reset).toHaveBeenCalledTimes(2)
+  expect(reset).toHaveBeenCalledTimes(1)
+  expect(warnings).toHaveBeenCalledWith('Turnstile error:', '600010')
+  expect(JSON.stringify(warnings.mock.calls)).not.toContain('third-token')
   expect(screen.getByRole('button', { name: 'Enviar consulta' })).toBeDisabled()
   expect(screen.getByRole('alert')).toHaveTextContent(
     planContent.submission.verificationError,
