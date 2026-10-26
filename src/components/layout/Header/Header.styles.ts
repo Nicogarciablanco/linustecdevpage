@@ -86,15 +86,21 @@ export const HeaderActions = styled.div<{ $sticky: boolean }>`
     padding: 0 15px;
     font-size: 12px;
   }
+  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    a {
+      min-height: 44px;
+      font-size: 13px;
+    }
+  }
   @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {
     gap: 4px;
     a {
-      min-height: 34px;
-      padding: 0 6px;
-      font-size: 9px;
+      min-height: 44px;
+      padding: 0 clamp(8px, 2vw, 12px);
+      font-size: clamp(11px, 2.8vw, 13px);
     }
   }
-  @media (max-width: 360px) {
+  @media (max-width: 340px) {
     a:last-child {
       display: none;
     }

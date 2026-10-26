@@ -85,7 +85,7 @@ it('loads Turnstile at review and retries a widget error without reloading api.j
   expect(currentScript()).toBeNull()
 
   fireEvent.click(
-    screen.getAllByRole('button', { name: 'Configurar plan' })[0]!,
+    screen.getAllByRole('button', { name: 'Personalizar plan' })[0]!,
   )
   expect(screen.getByRole('dialog')).toBeInTheDocument()
   expect(insertedScripts()).toHaveLength(0)
@@ -99,7 +99,6 @@ it('loads Turnstile at review and retries a widget error without reloading api.j
     ['Correo electrónico', 'nico@example.com'],
     ['WhatsApp', '11 5555 4444'],
     ['¿Qué necesitás?', 'Carta y pedidos'],
-    ['Enlace al material', 'https://drive.google.com/drive/folders/example'],
   ] as const)
     fireEvent.change(screen.getByLabelText(label), { target: { value } })
   fireEvent.click(screen.getByRole('button', { name: 'Ver resumen' }))

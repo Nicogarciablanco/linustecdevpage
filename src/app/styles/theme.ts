@@ -1,6 +1,6 @@
 export const theme = {
   colors: {
-    ink: '#020617',
+    ink: '#0f172a',
     navy: '#0f172a',
     navy2: '#1e293b',
     teal: '#00d2a0',
@@ -16,8 +16,12 @@ export const theme = {
     line: 'rgba(148, 163, 184, .28)',
   },
   fonts: {
-    body: 'Inter, system-ui, sans-serif',
-    display: '"Archivo Black", Impact, sans-serif',
+    text: '"Google Sans", system-ui, sans-serif',
+    title: '"Barlow Condensed", Impact, sans-serif',
+  },
+  typography: {
+    titleWeight: 700,
+    titleLineHeight: 0.9,
   },
   spacing: {
     pageGutter: 'clamp(72px, 7.8vw, 112px)',
@@ -30,9 +34,9 @@ export const theme = {
   },
   radius: { hero: '34px', card: '16px', plan: '16px', pill: '999px' },
   shadows: {
-    card: '0 24px 80px rgba(2,6,23,.08)',
-    header: '0 12px 48px rgba(5,12,28,.16)',
-    dialog: '0 30px 100px rgba(2,6,23,.45)',
+    card: '0 24px 80px rgba(15,23,42,.08)',
+    header: '0 12px 48px rgba(15,23,42,.16)',
+    dialog: '0 30px 100px rgba(15,23,42,.45)',
   },
   widths: { container: '1240px', dialog: '760px' },
   breakpoints: { tablet: '900px', mobile: '620px' },

@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { handleConsultation } from './handler.ts'
 import type { ConsultationEnv } from './services.ts'
 import { consultationPolicy } from '../../src/data/consultationPolicy.ts'
-import { validatePayload } from './validation.ts'
 import worker from '../worker.ts'
 import { onRequest } from '../../functions/api/consultations.ts'
 
@@ -33,7 +32,6 @@ const payload = () => ({
     message: 'Quiero una carta con pedidos.',
     domain: 'register',
   },
-  materialUrl: 'https://drive.google.com/drive/folders/example',
   turnstileToken: 'test-token-not-valid-in-production',
 })
 function request(
@@ -183,13 +181,7 @@ describe('consultation server', () => {
     },
     { contact: { ...payload().contact, message: '' } },
     { contact: { ...payload().contact, message: 'x'.repeat(6001) } },
-    { materialUrl: '' },
-    { materialUrl: undefined },
-    { materialUrl: 'javascript:alert(1)' },
-    { materialUrl: 'https://user:pass@drive.example.com/file' },
-    { materialUrl: 'https://drive.example.com/\nBcc:evil@example.com' },
-    { materialUrl: 'https://drive.example.com/'.padEnd(2050, 'x') },
-    { materialUrl: null },
+    { materialUrl: 'https://files.example.com/shared' },
     { mailTo: 'attacker@example.com' },
     { files: [] },
   ])(
@@ -317,21 +309,13 @@ describe('consultation server', () => {
     expect(sent.to).toEqual([env.MAIL_TO])
     expect(sent.from).toBe(env.MAIL_FROM)
     expect(sent.reply_to).toBe(data.contact.email)
+    expect(sent.text).toContain('Extras: Reservas de mesas')
     expect(sent.text).toContain('Reservas de mesas: + AR$***')
-    expect(sent.text).toContain(data.materialUrl)
-    expect(sent.text).toContain('acceso no verificado')
+    expect(sent.text).not.toContain('Enlace al material')
     expect(sent.html).toBeUndefined()
     expect(sent.attachments).toBeUndefined()
     const rateCommand = fetcher.mock.calls[0]![1]!.body as string
     expect(rateCommand).not.toContain(ip)
-  })
-  it('accepts an HTTP folder link', () => {
-    expect(
-      validatePayload({
-        ...payload(),
-        materialUrl: 'http://files.example.com/shared',
-      })?.materialUrl,
-    ).toBe('http://files.example.com/shared')
   })
   it('reuses the provider idempotency key for retries with a renewed token', async () => {
     const fetcher = services()

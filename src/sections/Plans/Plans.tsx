@@ -9,6 +9,7 @@ import {
 } from '../../components/ui/Layout'
 import { planContent, plans } from '../../data/plans'
 import type { PlanId } from '../../types/plan'
+import { Process } from '../Process/Process'
 import { PlanCard } from './PlanCard'
 import { PlanCursor, PlanGrid, PlansSection } from './Plans.styles'
 
@@ -16,7 +17,11 @@ export function Plans({
   onSelect,
   selectedId,
 }: {
-  onSelect: (id: PlanId, button: HTMLButtonElement) => void
+  onSelect: (
+    id: PlanId,
+    button: HTMLButtonElement,
+    entry: 'base' | 'customize',
+  ) => void
   selectedId: PlanId | null
 }) {
   const cursorRef = useRef<HTMLDivElement>(null)
@@ -97,14 +102,14 @@ export function Plans({
               onPointerMove={moveCursor}
               onPointerLeave={hideCursor}
               onPointerCancel={hideCursor}
-              onSelect={(button) => {
+              onSelect={(button, entry) => {
                 hideCursor()
-                onSelect(plan.id, button)
+                onSelect(plan.id, button, entry)
               }}
             />
           ))}
         </PlanGrid>
-        <p className="plans-note">{planContent.priceNote}</p>
+        <Process />
         <PlanCursor ref={cursorRef} aria-hidden="true" data-visible="false">
           <ArrowUpRight size={24} aria-hidden="true" />
         </PlanCursor>

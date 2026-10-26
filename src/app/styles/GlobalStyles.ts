@@ -9,7 +9,7 @@ export const GlobalStyles = createGlobalStyle`
   }
   *, *::before, *::after { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
-  body { margin: 0; overflow-x: hidden; background: ${({ theme }) => theme.colors.page}; color: ${({ theme }) => theme.colors.ink}; font-family: ${({ theme }) => theme.fonts.body}; }
+  body { margin: 0; overflow-x: hidden; background: ${({ theme }) => theme.colors.page}; color: ${({ theme }) => theme.colors.ink}; font-family: ${({ theme }) => theme.fonts.text}; }
   button, input { font: inherit; }
   a { color: inherit; text-decoration: none; }
   button { cursor: pointer; }

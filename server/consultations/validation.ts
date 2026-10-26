@@ -1,8 +1,5 @@
 import { plans, planContent } from '../../src/data/plans.ts'
-import {
-  consultationPolicy as policy,
-  validMaterialUrl,
-} from '../../src/data/consultationPolicy.ts'
+import { consultationPolicy as policy } from '../../src/data/consultationPolicy.ts'
 import type { ConsultationPayload } from '../../src/types/consultation.ts'
 import type { RequestContact } from '../../src/types/plan.ts'
 
@@ -75,7 +72,6 @@ export function validatePayload(value: unknown): ConsultationPayload | null {
       'selectedChoiceIds',
       'selectedExtraIds',
       'contact',
-      'materialUrl',
       'turnstileToken',
     ])
   )
@@ -91,7 +87,6 @@ export function validatePayload(value: unknown): ConsultationPayload | null {
   if (
     !plan ||
     !contact(value.contact) ||
-    !validMaterialUrl(value.materialUrl) ||
     !ids(
       value.selectedChoiceIds,
       plan.choices.map((item) => item.id),
@@ -118,7 +113,6 @@ export function validatePayload(value: unknown): ConsultationPayload | null {
       phone: value.contact.phone.trim(),
       message: value.contact.message.trim(),
     },
-    materialUrl: value.materialUrl as string,
     turnstileToken: value.turnstileToken,
   }
 }

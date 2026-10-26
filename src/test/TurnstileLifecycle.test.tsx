@@ -21,7 +21,6 @@ function openReview() {
     ['Correo electrónico', 'nico@example.com'],
     ['WhatsApp', '11 5555 4444'],
     ['¿Qué necesitás?', 'Proyecto con funciones propias.'],
-    ['Enlace al material', 'https://drive.google.com/drive/folders/example'],
   ] as const)
     fireEvent.change(screen.getByLabelText(label), { target: { value } })
   fireEvent.click(screen.getByRole('button', { name: 'Ver resumen' }))

@@ -1,22 +1,48 @@
 import type { DomainStatus, Plan, Price } from '../types/plan'
-import { consultationPolicy } from './consultationPolicy.ts'
 
 // Textos compartidos de Planes y del configurador. Los alcances por producto están debajo.
 export const planContent = {
   heading: 'Elegí un plan. Adaptalo a',
   headingAccent: 'tu negocio.',
   introduction:
-    'Todo lo que incluye cada base, a la vista. Elegí tu plan, sumá los extras que necesitás y prepará la información de tu proyecto.',
-  priceNote:
-    'Vista de trabajo para definir los alcances. Los asteriscos representan precios todavía pendientes de definir.',
-  disclosures: {
-    included: 'Qué incluye',
-    extras: 'Extras y funciones adicionales',
-    material: 'Material que necesitamos de vos',
-  },
-  configure: 'Configurar plan',
-  customConfigure: 'Contame tu idea',
+    'Compará lo que incluye cada base. Podés consultar el plan tal como está o personalizarlo con extras.',
+  baseAction: 'Comprar base',
+  customizeAction: 'Personalizar plan',
+  customAction: 'Consultar proyecto',
+  extrasPrompt: '¿Te faltó sumar algún extra?',
+  extrasPromptCopy:
+    'Podés revisar los adicionales disponibles antes de enviar la consulta. Conservamos los datos que ya completaste.',
+  addExtras: 'Agregar extras',
+  skipExtras: 'Seguir sin extras',
+  processHeading: 'Claro desde el primer',
+  processHeadingAccent: 'paso.',
+  processIntroduction:
+    'Sin llamadas innecesarias ni presupuestos ambiguos. El proyecto comienza cuando el alcance, el material y la seña están confirmados.',
+  processSteps: [
+    {
+      number: '01',
+      title: 'Elegís',
+      copy: 'Seleccionás una solución y los extras que necesita tu proyecto.',
+    },
+    {
+      number: '02',
+      title: 'Enviás',
+      copy: 'Completás el formulario guiado. Los materiales los pediremos después de verificar la seña.',
+    },
+    {
+      number: '03',
+      title: 'Validamos',
+      copy: 'Confirmamos alcance, precio y datos de pago; luego verificamos manualmente la acreditación.',
+    },
+    {
+      number: '04',
+      title: 'Comenzamos',
+      copy: 'Con la seña acreditada, reunimos tus materiales mediante un Google Form y comenzamos el desarrollo.',
+    },
+  ],
   included: 'Incluido',
+  extrasLabel: 'Extras',
+  noExtras: 'Sin extras',
   includedOptions: 'Opciones de la solución base',
   includedOptionsNote: 'Estas opciones están incluidas en el precio base.',
   extrasHeading: '¿Querés sumar algo?',
@@ -24,13 +50,12 @@ export const planContent = {
   quotePrice: 'A cotizar',
   pendingPriceNote: 'Los importes están pendientes de definir.',
   startCondition:
-    'El trabajo comienza con el material completo y la seña del 50% acreditada.',
-  materialNote:
-    'Vos aportás el logo, las fotos, los videos y demás materiales. LinusTec desarrolla la página; no diseña logos ni produce fotos o videos. Si falta algo, te lo pedimos por mensaje antes de iniciar.',
+    'El trabajo comienza después de confirmar el alcance, verificar manualmente la seña y recibir los materiales acordados.',
   standardNote:
     'Planes estándar por formulario y mensajes. Reuniones solo para proyectos a medida.',
   customNote: 'La reunión sirve para definir una propuesta propia.',
-  reviewNote: 'Revisá los datos y el material antes de enviar tu consulta.',
+  reviewNote:
+    'Revisá el plan, los extras y tus datos antes de enviar la consulta.',
   submission: {
     send: 'Enviar consulta',
     sending: 'Enviando consulta…',
@@ -46,11 +71,11 @@ export const planContent = {
       unavailable:
         'El servicio de envío no está disponible. Conservamos tus datos; reintentá más tarde.',
       invalid_data:
-        'Revisá los datos y el enlace a la carpeta de materiales antes de enviar.',
+        'Revisá los datos de contacto y las opciones del plan antes de enviar.',
       invalid_token:
         'La verificación venció o no es válida. Completala de nuevo y reintentá.',
       too_large:
-        'La solicitud supera el tamaño permitido. Acortá el mensaje o el enlace y reintentá.',
+        'La solicitud supera el tamaño permitido. Acortá el mensaje y reintentá.',
       rate_limited:
         'Se alcanzó el límite de consultas. Esperá antes de volver a intentar; tus datos se conservan.',
       mail_unconfirmed:
@@ -62,7 +87,6 @@ export const planContent = {
   selectionHeading: 'Tu selección',
   totalLabel: 'Total seleccionado',
   reviewHeading: 'Resumen de tu solicitud',
-  materialUrlEmailNote: 'Enlace aportado por la persona; acceso no verificado.',
   steps: {
     options: 'Opciones y extras',
     details: 'Tu proyecto',
@@ -106,11 +130,6 @@ export const planContent = {
       error: 'Contanos brevemente qué necesitás.',
     },
     domainLabel: 'Dominio',
-    materialUrl: {
-      label: 'Enlace al material',
-      help: 'Compartí una carpeta con el material disponible y asegurate de darnos acceso para ver los archivos.',
-      error: `Ingresá el enlace a la carpeta: debe empezar con http:// o https:// y tener hasta ${consultationPolicy.maxMaterialUrlLength} caracteres.`,
-    },
   },
   domainOptions: [
     { value: 'register', label: 'Necesito registrar un dominio' },
@@ -128,7 +147,6 @@ export const plans: Plan[] = [
     headline: 'Carta que también toma pedidos.',
     audience:
       'Para restaurantes, cafeterías y locales de comida que quieren mostrar su carta y recibir pedidos.',
-    priceLabel: 'Plan gastronómico',
     choices: [
       {
         id: 'retiro',
@@ -147,27 +165,27 @@ export const plans: Plan[] = [
     inclusionLabel: 'Qué incluye de base',
     inclusions: [
       {
-        title: 'Identidad de tu negocio',
+        title: 'Diseño adaptado a tu marca',
         description:
           'Adaptamos la base de la solución con tu logo, colores, imágenes y datos.',
       },
       {
-        title: 'Carga inicial del menú',
+        title: 'Menú: 2 categorías, hasta 8 subcategorías y 48 productos',
         description:
           'Dos categorías principales, por ejemplo comida y bebida; hasta ocho subcategorías a distribuir y 48 productos en total.',
       },
       {
-        title: 'Información de los productos',
+        title: 'Nombre, descripción, precio e imagen por producto',
         description:
           'Cada producto puede tener nombre, descripción, precio y una imagen que nos proporciones.',
       },
       {
-        title: 'Carta digital y acceso por QR',
+        title: 'Carta digital y QR para compartir',
         description:
           'El menú se consulta desde un enlace o un QR listo para compartir o imprimir.',
       },
       {
-        title: 'Carrito y pedido por WhatsApp',
+        title: 'Carrito y pedido ordenado por WhatsApp',
         description:
           'El cliente elige cantidades, agrega una observación general y envía el pedido ordenado al local.',
       },
@@ -177,12 +195,12 @@ export const plans: Plan[] = [
           'Configuramos las modalidades que uses, los datos del cliente y las condiciones de envío acordadas.',
       },
       {
-        title: 'Información y contacto',
+        title: 'Contacto y datos de transferencia',
         description:
           'Horarios, ubicación, redes y datos informativos para pagar por transferencia. El pago no se procesa en la web.',
       },
       {
-        title: 'Revisión y publicación',
+        title: 'Adaptación mobile, una revisión y publicación',
         description:
           'Funciona en celular y computadora. Incluye una ronda de ajustes dentro del alcance y la conexión del dominio que registres.',
       },
@@ -253,7 +271,6 @@ export const plans: Plan[] = [
     headline: 'Tus servicios. Su próximo turno.',
     audience:
       'Para masajes, estética y otros servicios que necesitan mostrar su oferta y organizar una agenda.',
-    priceLabel: 'Plan de servicios y reservas',
     choices: [
       {
         id: 'catalogo',
@@ -272,37 +289,37 @@ export const plans: Plan[] = [
     inclusionLabel: 'Qué incluye de base',
     inclusions: [
       {
-        title: 'Identidad y presentación',
+        title: 'Presentación con tu marca y datos de contacto',
         description:
           'Tu logo, fotos, información del negocio, ubicación y formas de contacto.',
       },
       {
-        title: 'Catálogo de servicios',
+        title: 'Catálogo de servicios; cantidad inicial a definir',
         description:
           'Mostramos los servicios, su descripción, duración y precio. El límite de la carga inicial está pendiente de definir en esta propuesta.',
       },
       {
-        title: 'Productos relacionados',
+        title: 'Catálogo informativo de productos, si corresponde',
         description:
           'Si vendés productos, pueden aparecer en un catálogo informativo con imagen, descripción, precio y consulta por WhatsApp. La cantidad inicial también queda por definir.',
       },
       {
-        title: 'Una agenda de turnos',
+        title: 'Agenda para un profesional o recurso',
         description:
           'Un profesional o recurso, con días de atención, horarios y duración de los turnos acordados.',
       },
       {
-        title: 'Disponibilidad y reserva',
+        title: 'Disponibilidad y reserva de turnos',
         description:
           'El cliente elige servicio, fecha y horario. Ve si hay disponibilidad y completa los datos para confirmar un turno.',
       },
       {
-        title: 'Panel básico de reservas',
+        title: 'Panel básico para gestionar reservas',
         description:
           'Consultar y cancelar turnos, bloquear horarios y gestionar la configuración prevista en la agenda. Está incluido.',
       },
       {
-        title: 'Adaptación y entrega',
+        title: 'Adaptación mobile, una revisión y publicación',
         description:
           'Celular y computadora, una ronda de ajustes dentro del alcance, publicación y conexión del dominio que registres.',
       },
@@ -363,7 +380,6 @@ export const plans: Plan[] = [
     headline: 'Una presencia que da confianza.',
     audience:
       'Para profesionales, estudios y negocios que quieren mostrar lo que hacen.',
-    priceLabel: 'Un plan, un precio',
     choices: [
       {
         id: 'onepage',
@@ -382,31 +398,31 @@ export const plans: Plan[] = [
     inclusionLabel: 'Qué incluye de base',
     inclusions: [
       {
-        title: 'Identidad del negocio',
+        title: 'Diseño adaptado a tu marca',
         description:
           'Adaptación de la base visual con tu logo, colores y material.',
       },
       {
-        title: 'Estructura de presentación',
+        title: 'Una página con hasta 5 secciones o hasta 4 páginas',
         description:
           'Una página con hasta cinco secciones o hasta cuatro páginas separadas. La estructura se acuerda según el contenido, dentro de un mismo plan y precio base.',
       },
       {
-        title: 'Contenido organizado',
+        title: 'Textos e imágenes organizados',
         description:
           'Distribuimos los textos e imágenes que nos envíes en las páginas acordadas.',
       },
       {
-        title: 'Navegación y contacto',
+        title: 'Navegación y enlaces de contacto',
         description: 'Menú entre páginas y enlaces a WhatsApp, correo y redes.',
       },
       {
-        title: 'Adaptación y buscadores',
+        title: 'Diseño mobile y datos básicos para buscadores',
         description:
           'Versiones para celular y computadora, más título y descripción para las páginas principales.',
       },
       {
-        title: 'Revisión y publicación',
+        title: 'Una revisión y publicación',
         description:
           'Una ronda de ajustes dentro del alcance, publicación y conexión del dominio que registres.',
       },
@@ -474,7 +490,6 @@ export const plans: Plan[] = [
     headline: 'Cuando tu idea necesita otra lógica.',
     audience:
       'Para funciones, flujos e integraciones que necesitan una propuesta propia.',
-    priceLabel: 'Según el alcance',
     choices: [],
     choiceMode: 'multiple',
     defaultChoices: [],

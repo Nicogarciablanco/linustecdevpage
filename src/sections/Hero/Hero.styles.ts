@@ -4,24 +4,21 @@ import { Section } from '../../components/ui/Layout'
 export const HeroSection = styled(Section)`
   min-height: calc(100svh - 80px);
   overflow: hidden;
-  padding: 64px 0;
+  align-items: center;
+  padding: 64px 0 144px;
   color: ${({ theme }) => theme.colors.white};
   background: ${({ theme }) => theme.colors.navy};
-  border-radius: 0 0 ${({ theme }) => theme.radius.hero};
+  border-radius: 0 0 ${({ theme }) => theme.radius.hero}
     ${({ theme }) => theme.radius.hero};
   @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
-    min-height: auto;
-  }
-  @media (min-width: 901px) {
-    padding-bottom: 189px;
-  }
-  @media (min-width: 901px) and (max-height: 800px) {
-    padding-bottom: 138px;
+    padding: 48px 0 128px;
   }
   @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {
-    min-height: calc(100svh - 80px);
-    padding-bottom: 42px;
+    padding: 24px 0 104px;
     border-radius: 0 0 24px 24px;
+  }
+  @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) and (max-height: 700px) {
+    padding: 12px 0 92px;
   }
 `
 export const HeroBrand = styled.div`
@@ -42,7 +39,7 @@ export const HeroBrand = styled.div`
   }
 
   @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {
-    width: min(21vw, 82px);
+    width: min(38vw, 148px);
   }
 `
 
@@ -57,8 +54,8 @@ export const HeroBrandImage = styled.img`
   transform: scale(1.16);
 
   @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {
-    filter: blur(18px);
-    opacity: 0.15;
+    filter: blur(12px);
+    opacity: 0.24;
     transform: scale(1.1);
   }
 `
@@ -66,22 +63,22 @@ export const HeroContent = styled.div`
   position: relative;
   z-index: 2;
   display: grid;
-  grid-template-columns: 1.18fr 0.82fr;
-  align-items: end;
-  gap: 56px;
-  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
-    grid-template-columns: 1fr;
-    align-items: start;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+  gap: clamp(24px, 4vh, 40px);
+  @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) and (max-height: 700px) {
+    gap: 40px;
   }
 `
 export const HeroTitle = styled.h1`
   max-width: 880px;
-  margin: 24px 0 0;
-  font-family: ${({ theme }) => theme.fonts.display};
-  font-size: clamp(58px, 7.1vw, 106px);
-  line-height: 0.91;
-  letter-spacing: -0.055em;
+  margin: 0;
+  font-family: ${({ theme }) => theme.fonts.title};
+  font-size: clamp(50px, 7.1vw, 95px);
+  font-weight: ${({ theme }) => theme.typography.titleWeight};
+  line-height: ${({ theme }) => theme.typography.titleLineHeight};
   text-transform: uppercase;
+
   span {
     color: ${({ theme }) => theme.colors.teal};
   }
@@ -90,19 +87,14 @@ export const HeroTitle = styled.h1`
   }
 `
 export const HeroAside = styled.div`
-  max-width: 430px;
-  align-self: end;
-  justify-self: end;
+  max-width: 640px;
+  align-self: start;
+  justify-self: start;
   p {
     margin: 0 0 30px;
     color: ${({ theme }) => theme.colors.slate};
-    font-size: 18px;
+    font-size: 22px;
     line-height: 1.62;
-  }
-  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
-    align-self: auto;
-    justify-self: start;
-    max-width: 620px;
   }
   @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {
     p {

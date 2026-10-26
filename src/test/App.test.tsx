@@ -13,6 +13,7 @@ import { Profiler } from 'react'
 import { App } from '../app/App'
 import { GlobalStyles } from '../app/styles/GlobalStyles'
 import { theme } from '../app/styles/theme'
+import { planContent } from '../data/plans'
 import { projects } from '../data/projects'
 import { ProjectRail } from '../features/project-rail/ProjectRail'
 import { Plans } from '../sections/Plans/Plans'
@@ -92,7 +93,7 @@ function setup() {
 }
 function openPlan(index: number) {
   fireEvent.click(
-    screen.getAllByRole('button', { name: 'Configurar plan' })[index]!,
+    screen.getAllByRole('button', { name: 'Personalizar plan' })[index]!,
   )
 }
 
@@ -194,13 +195,6 @@ describe('landing', () => {
       expect(header).toHaveAttribute('data-sticky', sticky)
     }
   })
-  it('aligns the hero aside to the title base on desktop', () => {
-    setup()
-    const aside = screen.getByText(
-      /Diseñamos y desarrollamos experiencias/,
-    ).parentElement!
-    expect(getComputedStyle(aside).alignSelf).toBe('end')
-  })
   it('combines the projects heading, CTA, and rail in one section', () => {
     setup()
     const section = document.querySelector<HTMLElement>('#trabajos')!
@@ -240,7 +234,7 @@ describe('landing', () => {
     const cursorIcon = document.querySelector('[data-visible] svg')
     expect(plansLink.querySelector('svg')).toHaveAttribute('width', '16')
     expect(contactLink.querySelector('svg')).toHaveAttribute('width', '16')
-    expect(cardArrows).toHaveLength(4)
+    expect(cardArrows).toHaveLength(3)
     expect(
       [...cardArrows].every(
         (icon) =>
@@ -489,7 +483,11 @@ describe('landing', () => {
         </Profiler>
       </ThemeProvider>,
     )
-    const cards = [...document.querySelectorAll<HTMLElement>('#planes article')]
+    const cards = [
+      ...document.querySelectorAll<HTMLElement>(
+        '#planes article[aria-labelledby^="plan-title-"]',
+      ),
+    ]
     const cursor = document.querySelector<HTMLElement>(
       '#planes [data-visible]',
     )!
@@ -546,7 +544,7 @@ describe('landing', () => {
   })
   it('starts A medida with the idea form and no automatic extras', () => {
     setup()
-    fireEvent.click(screen.getByRole('button', { name: 'Contame tu idea' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Consultar proyecto' }))
     const dialog = screen.getByRole('dialog')
     expect(
       within(dialog).getByRole('heading', { name: 'Proyecto a medida' }),
@@ -556,44 +554,73 @@ describe('landing', () => {
       within(dialog).queryByText('Opciones de la solución base'),
     ).not.toBeInTheDocument()
   })
-  it('opens cards without covering the material disclosure', () => {
+  it('shows every base inclusion directly and keeps extras in the configurator', () => {
     setup()
-    const card = document.querySelector('#planes article')!
-    fireEvent.click(
-      within(card as HTMLElement).getByText('Material que necesitamos de vos'),
+    const cards = document.querySelectorAll(
+      '#planes article[aria-labelledby^="plan-title-"]',
     )
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    fireEvent.click(
-      within(card as HTMLElement).getByRole('heading', { level: 3 }),
+    expect(cards).toHaveLength(4)
+    expect(
+      document.querySelectorAll('#planes article .price strong'),
+    ).toHaveLength(4)
+    expect(screen.queryByText('Plan gastronómico')).not.toBeInTheDocument()
+    expect(screen.queryByText('Según el alcance')).not.toBeInTheDocument()
+    expect(cards[0]).toHaveTextContent(
+      'Menú: 2 categorías, hasta 8 subcategorías y 48 productos',
     )
-    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(cards[0]).not.toHaveTextContent('Reservas de mesas')
+    expect(
+      screen.getAllByRole('button', { name: 'Comprar base' }),
+    ).toHaveLength(3)
+    expect(
+      screen.queryByText(/Materiales después de confirmar el pago/),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(/Los precios marcados AR\$\*\*\*/),
+    ).not.toBeInTheDocument()
+    expect(document.querySelector('#planes #proceso')).toContainElement(
+      screen.getByRole('heading', { name: /Claro desde el primer paso/i }),
+    )
+    expect(document.querySelectorAll('#planes #proceso article')).toHaveLength(
+      4,
+    )
   })
-  it('keeps the three plan disclosures independent and extras separate from the base', () => {
+  it('offers extras before reviewing a base without losing contact data', () => {
     setup()
-    const cards = document.querySelectorAll('#planes article')
-    for (const card of cards) {
-      const details = [...card.querySelectorAll('details')]
-      expect(
-        details.map((item) => item.querySelector('summary')?.textContent),
-      ).toEqual([
-        'Qué incluye',
-        'Extras y funciones adicionales',
-        'Material que necesitamos de vos',
-      ])
-      fireEvent.click(details[0]!.querySelector('summary')!)
-      fireEvent.click(details[1]!.querySelector('summary')!)
-      expect(details[0]).toHaveAttribute('open')
-      expect(details[1]).toHaveAttribute('open')
-      fireEvent.click(details[0]!.querySelector('summary')!)
-      expect(details[0]).not.toHaveAttribute('open')
-      expect(details[1]).toHaveAttribute('open')
-      expect(details[2]).not.toHaveAttribute('open')
-    }
-    const gastronomic = cards[0]!.querySelectorAll('details')
-    expect(gastronomic[0]).not.toHaveTextContent('Reservas de mesas')
-    expect(gastronomic[1]).toHaveTextContent('Reservas de mesas')
-    expect(gastronomic[1]).toHaveTextContent('+ AR$***')
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    fireEvent.click(screen.getAllByRole('button', { name: 'Comprar base' })[0]!)
+    expect(screen.getByLabelText('Tu nombre')).toBeInTheDocument()
+    for (const [label, value] of [
+      ['Tu nombre', 'Nicolás Pérez'],
+      ['Negocio o actividad', 'Café Sur'],
+      ['Correo electrónico', 'nico@cafe.com'],
+      ['WhatsApp', '11 5555 4444'],
+      ['¿Qué necesitás?', 'Carta y pedidos'],
+    ] as const)
+      fireEvent.change(screen.getByLabelText(label), { target: { value } })
+    fireEvent.click(screen.getByRole('button', { name: 'Completar solicitud' }))
+    expect(
+      screen.getByRole('heading', { name: planContent.extrasPrompt }),
+    ).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar extras' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /Reservas de mesas/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Ver resumen' }))
+    expect(screen.getByText('Nicolás Pérez')).toBeInTheDocument()
+    expect(screen.getByText('Reservas de mesas')).toBeInTheDocument()
+  })
+  it('marks a base consultation without extras explicitly in the review', () => {
+    setup()
+    fireEvent.click(screen.getAllByRole('button', { name: 'Comprar base' })[0]!)
+    for (const [label, value] of [
+      ['Tu nombre', 'Nicolás Pérez'],
+      ['Negocio o actividad', 'Café Sur'],
+      ['Correo electrónico', 'nico@cafe.com'],
+      ['WhatsApp', '11 5555 4444'],
+      ['¿Qué necesitás?', 'Carta y pedidos'],
+    ] as const)
+      fireEvent.change(screen.getByLabelText(label), { target: { value } })
+    fireEvent.click(screen.getByRole('button', { name: 'Completar solicitud' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Seguir sin extras' }))
+    expect(screen.getByText('Sin extras')).toBeInTheDocument()
   })
   it('keeps selected extras and form data through review and back', () => {
     setup()
@@ -626,16 +653,8 @@ describe('landing', () => {
     fireEvent.change(within(dialog).getByLabelText('¿Qué necesitás?'), {
       target: { value: 'Carta y pedidos' },
     })
-    fireEvent.change(within(dialog).getByLabelText('Enlace al material'), {
-      target: { value: 'https://drive.google.com/drive/folders/example' },
-    })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Ver resumen' }))
     expect(within(dialog).getByText('Nicolás Pérez')).toBeInTheDocument()
-    expect(
-      within(dialog).getByText(
-        'https://drive.google.com/drive/folders/example',
-      ),
-    ).toBeInTheDocument()
     expect(within(dialog).getByText('Reservas de mesas')).toBeInTheDocument()
     fireEvent.click(within(dialog).getByRole('button', { name: 'Volver' }))
     expect(within(dialog).getByLabelText('Tu nombre')).toHaveValue(
@@ -663,7 +682,7 @@ describe('landing', () => {
   })
   it('keeps sending disabled when Turnstile is not configured', () => {
     setup()
-    fireEvent.click(screen.getByRole('button', { name: 'Contame tu idea' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Consultar proyecto' }))
     const dialog = screen.getByRole('dialog')
     for (const [label, value] of [
       ['Tu nombre', 'Nicolás Pérez'],
@@ -671,18 +690,12 @@ describe('landing', () => {
       ['Correo electrónico', 'nico@estudio.com'],
       ['WhatsApp', '11 5555 4444'],
       ['¿Qué necesitás?', 'Una solución a medida'],
-      ['Enlace al material', 'https://drive.google.com/drive/folders/example'],
     ] as const) {
       fireEvent.change(within(dialog).getByLabelText(label), {
         target: { value },
       })
     }
     fireEvent.click(within(dialog).getByRole('button', { name: 'Ver resumen' }))
-    expect(
-      within(dialog).getAllByText(
-        /Revisá los datos y el material antes de enviar tu consulta\./,
-      ),
-    ).toHaveLength(2)
     expect(within(dialog).getAllByText('A cotizar')).toHaveLength(2)
     expect(
       within(dialog).getByRole('button', { name: 'Enviar consulta' }),
@@ -694,7 +707,7 @@ describe('landing', () => {
   it('closes with the icon button and restores focus', async () => {
     setup()
     const opener = screen.getAllByRole('button', {
-      name: 'Configurar plan',
+      name: 'Personalizar plan',
     })[0]!
     opener.focus()
     fireEvent.click(opener)

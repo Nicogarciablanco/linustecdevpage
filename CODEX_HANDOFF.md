@@ -1,52 +1,25 @@
-# LinusTec: estado de entrega
+# LinusTec: estado de la copia local
 
-## Turnstile: carga en Resumen — 21 de octubre de 2026
+## Planes — 24 de octubre de 2026
 
-Se retiró la precarga de `Plans.tsx`. La home y los pasos Opciones y Datos no cargan `api.js`; el paso Resumen monta el widget y comienza entonces la espera máxima de 30 segundos. El cargador usa el callback `onload` de `api.js?render=explicit`, sin llamar a `turnstile.ready()`; el objeto global puede aparecer antes de que el script esté listo. Un error de carga elimina el script fallido y permite un nuevo intento; una carga exitosa se reutiliza al volver a Resumen sin insertar otra copia. El widget usa `retry: 'never'` y actualización manual para que su reintento automático no compita con «Reintentar verificación». La consola registra solo motivos fijos de carga/render o códigos numéricos del widget, nunca tokens ni secretos. El formulario consume cada token al enviar y lo descarta a los 4 minutos y 45 segundos; vencimiento, error del widget y rechazo de Siteverify permiten renovarlo sin recargar. El servidor conserva la validación y registra solo códigos de error saneados. Las pruebas dirigidas cubren primer widget, error de carga, error del widget, reintento, token viejo y regreso a Resumen. No se cambiaron claves, DNS ni modo del widget. Sin site key ni secretos reales en esta copia, no se comprobó un envío real por Cloudflare y Resend.
+Esta iteración se hizo sobre cambios locales existentes, que se conservaron. La sección Planes muestra Gastronómico, Servicios y reservas, Presentación institucional y A medida en una grilla comparativa de cuatro columnas en escritorio, dos en tablet y una en mobile. Las tres bases muestran directamente sus inclusiones completas en frases breves, precio `AR$***`, «Comprar base» y «Personalizar plan». A medida conserva «A cotizar» y una consulta de proyecto, sin fingir precio cerrado. Los importes se muestran sin la etiqueta corta que antes aparecía encima. Los títulos usan el color visible del tema. Debajo de las tarjetas, el bloque Proceso conserva su encabezado y diseño de cuatro pasos dentro de la misma `section#planes`; solo se retiró su enlace de la navegación superior. Se retiraron la nota separada de precios pendientes y el panel separado de materiales. El texto de los pasos se ajustó al nuevo momento de solicitud de materiales y vive en `planContent`, sin una segunda fuente de datos.
 
-## Iteración de Planes — octubre de 2026
+Todo el contenido comercial editable está en `src/data/plans.ts`: `planContent` contiene textos compartidos, proceso y etiquetas; `plans` contiene nombres, inclusiones y límites, materiales para una fase posterior, opciones, extras y precios por producto. `{ status: 'pending' }` muestra `AR$***`; `{ status: 'quote' }` muestra «A cotizar»; `{ status: 'defined', amount: 123456 }` define un importe real. No se añadió un plan de hoteles.
 
-La sección Planes conserva los cuatro productos de `reference/linustec-planes-referencia.html`: Gastronómico, Servicios y reservas, Presentación institucional y A medida. La revisión del 16 de octubre parte de la copia local con cambios pendientes, sin recuperar el commit retirado. Las tarjetas se apilan en todos los tamaños; escritorio distribuye presentación y desplegables en dos columnas internas, y tablet/mobile usan una. Cada tarjeta tiene tres desplegables nativos independientes: Qué incluye, Extras y funciones adicionales y Material que necesitamos de vos. El archivo de referencia estaba sin seguimiento en Git y se conservó intacto. No se tocaron Header, Hero, Proyectos, Proceso, Contacto ni sus datos. No se hizo reset, clean, commit, deploy ni push.
+«Comprar base» abre el formulario de contacto con las opciones base y sin extras. Tras validarlo, pregunta «¿Te faltó sumar algún extra?»; se puede seguir al resumen o abrir las opciones sin perder datos. «Personalizar plan» comienza por opciones y extras, luego contacto y resumen. A medida pide la descripción de la idea para cotizar. Al cambiar de plan se crea un diálogo nuevo con sus propias opciones. El resumen y el correo identifican plan base, opciones, extras y contacto. La primera consulta ya no pide archivos, URL de materiales ni acreditación de pago; el servidor rechaza esas claves ajenas al contrato.
 
-## Dónde editar el contenido comercial
+La propuesta comercial explica que se confirma el precio y los datos de cobro antes de indicar la seña del 50 %, el comprobante llega por correo, LinusTec verifica manualmente la acreditación y recién después envía un Google Form para materiales. No hay pasarela ni confirmación automática de pago. No se calcula una seña a partir de `AR$***`.
 
-Todo el contenido de las tarjetas y del configurador vive en [`src/data/plans.ts`](src/data/plans.ts). `planContent` reúne los textos compartidos de sección, desplegables, botones, formulario, dominio, precios pendientes y condiciones de comienzo. Cada registro de `plans` contiene `headline`, `audience`, `name`, `summary`, `inclusions`, `boundary`, `material`, `choices`, `extras` y `price`. Las cantidades incluidas, como los 48 productos gastronómicos o las cuatro páginas institucionales, están en las descripciones de `inclusions` y `boundary`. Los precios base se cambian en `price`; los importes de adicionales, en `extras[].price`. El estado `{ status: 'pending' }` muestra `AR$***`; `{ status: 'quote' }` muestra `A cotizar`; un precio definitivo usa `{ status: 'defined', amount: 123456 }`. El formato está en `formatPrice` y el total en `totalPrice` del mismo archivo.
+## Envío y seguridad
 
-Los tipos comerciales están en [`src/types/plan.ts`](src/types/plan.ts). `PlanRequestDraft` conserva el borrador con estado `draft`; `src/types/consultation.ts` define el contrato JSON y los resultados del envío.
+El endpoint `/api/consultations` conserva validación de servidor, Turnstile, límite distribuido con Upstash, idempotencia y correo de texto mediante Resend. El script de Turnstile se carga recién en Resumen mediante el callback `onload`; el token se consume una vez y se renueva tras vencimiento o rechazo. La interfaz solo anuncia éxito cuando el servidor confirma que Resend aceptó el correo. Sin configuración privada responde `503`; sin site key pública el botón queda deshabilitado. No se publicaron claves.
 
-## Flujo actual
+Para activar el envío faltan confirmar proyecto Pages/Workers, remitente y dominio verificado en Resend, destinatario, claves de Resend y Turnstile, widget autorizado para el dominio, Upstash y secretos del límite. `docs/CONSULTATIONS.md` contiene variables y pasos concretos. No se probó entrega real de correo ni pago.
 
-- Estándar: tarjeta con base consultable en desplegable → Opciones y extras → Datos y material → Resumen.
-- A medida: tarjeta con explicación consultable → Datos de la idea y referencias → Resumen.
-- El modal conserva datos al volver entre pasos. Al cerrar y abrir otro plan, inicia con las opciones propias del nuevo plan.
-- Hay validación de nombre, negocio, correo, WhatsApp, mensaje y enlace obligatorio a la carpeta de materiales. X, Escape y clic en el fondo cierran; el foco vuelve al botón que abrió el diálogo.
-- Después del resumen, “Enviar consulta” requiere Turnstile y una respuesta confirmada del servidor. El éxito solo se muestra cuando Resend acepta el envío; ante fallos, se conservan datos y enlace, se renueva el token y se permite reintentar. Sin la site key pública el botón queda deshabilitado; sin configuración privada el servidor devuelve `503`.
+## Archivos y verificación
 
-## Archivos principales
+Las piezas principales son `src/sections/Plans/`, `src/features/plan-configurator/`, `src/data/plans.ts`, `src/types/`, `server/consultations/`, `src/app/App.tsx` y `src/components/layout/Header/Header.tsx`. La documentación vigente es `README.md`, `docs/ARCHITECTURE.md`, `docs/DECISIONS.md` y `docs/CONSULTATIONS.md`.
 
-- Tarjetas: `src/sections/Plans/Plans.tsx`, `PlanCard.tsx` y `Plans.styles.ts`.
-- Modal y pasos: `src/features/plan-configurator/PlanConfigurator.tsx`, `PlanOptions.tsx`, `RequestForm.tsx`, `RequestSummary.tsx` y `PlanConfigurator.styles.ts`.
-- Datos y tipos: `src/data/plans.ts` y `src/types/plan.ts`.
-- Pruebas: `src/test/App.test.tsx`.
+ESLint, TypeScript, 62 pruebas y build pasaron en esta iteración. Chromium revisó 1920×1080, 1440×900, 1280×720, 1100×800, 1024×768 y 390×844: cuatro columnas desde 1280 px, dos hasta 701 px y una en mobile, sin overflow horizontal global. Se probó la validación del formulario, el paso de extras, el resumen, Escape, cierre por botón y retorno del foco. Las capturas locales están en `/tmp/linustec-planes-final-*-20261024.png` y `/tmp/linustec-plan-dialog-20261024.png`; el diff acotado de la iteración está en `/tmp/linustec-planes-20261024.diff`.
 
-## Pendiente para habilitar envío real
-
-El responsable confirmó Cloudflare Pages o Workers, pero falta identificar el producto/proyecto exacto. Proveedor y destinatario todavía no están definidos. Se dejó Resend como adaptador preparado, sin cuenta ni claves inventadas. Falta configurar dominio remitente verificado, MAIL_FROM/MAIL_TO, claves Resend/Turnstile, widget público y Upstash para límites compartidos. La lista completa y pasos están en `docs/CONSULTATIONS.md` y `.env.example`. No se comprobó un correo real: los casos de proveedor se prueban con servicios externos controlados en tests. El servidor local sin configuración se comprobó por HTTP y responde `503`.
-
-La entrada de Pages es `functions/api/consultations.ts`; la de Workers es `server/worker.ts`, con ejemplo no activo `wrangler.example.jsonc`. No se cambió infraestructura externa ni se publicó código. Los cuatro registros comerciales se conservan.
-
-Validación de la fase de correo: lint, TypeScript, 59 pruebas y build correctos. Servidor y UI prueban servicios externos con respuestas controladas; no se verificó entrega real. Pages y Worker compilan/ejecutan localmente con Wrangler 4.151.1 y devuelven `503` sin secretos; la home sigue respondiendo `200`. Chromium revisó 1920×1080, 390×844 y 320×720. Revisión de seguridad solo lectura por GPT-6.1 Sol High integrada: el límite global se consume únicamente tras CAPTCHA válido. No se añadieron dependencias del proyecto.
-
-## Carpeta de materiales obligatoria — 20 de octubre de 2026
-
-Todos los planes requieren «Enlace al material» para una carpeta con permisos de lectura. El cliente aporta logo, fotos y videos; LinusTec desarrolla la página y no produce esos recursos. El resumen muestra el enlace como texto y el servidor lo añade al correo de texto plano. Acepta URL absoluta HTTP(S), máximo 2048 caracteres, sin credenciales, espacios ni controles. El servidor no visita ni descarga enlaces, ni inicia sesión con servicios de archivos. Se quitaron la carga, los tipos, los límites, la validación y el envío de adjuntos. El cuerpo JSON tiene un máximo de 32 KiB. `src/data/plans.ts` contiene los textos y `src/data/consultationPolicy.ts` la validación compartida.
-
-Validación de esta iteración: `pnpm lint`, `pnpm typecheck`, `pnpm test --run` (**67 pruebas**) y `pnpm build` correctos. Las pruebas cubren enlace ausente, URL inválida, HTTP y HTTPS válidos, rechazo del campo antiguo `files`, correo de texto sin adjuntos, falta de clave Resend, rechazo del proveedor y confirmación solo con respuesta aceptada. No se comprobó entrega real de correo porque los servicios externos siguen sin configurar. Sin reset, clean, commit, push ni deploy.
-
-## Validación del 16 de octubre
-
-- Los cuatro registros comerciales se compararon con una copia de los archivos pendientes tomada antes de editar: inclusiones, límites, opciones, extras, materiales y precios permanecen idénticos.
-- Chromium: 1920×1080, 1440×900, 1280×720, 1024×768, 768×1024, 390×844 y 320×720, sin overflow global ni de tarjetas con los tres desplegables abiertos. Títulos con color del tema `#020617` y opacidad 1.
-- Recorridos completos de los cuatro planes con mouse y teclado en escritorio, tablet y mobile: validación, datos al volver, resumen sin envío, cierre con botón/Escape/fondo y retorno del foco. Los tests conservan la comprobación de extras propios al cambiar de plan.
-- Lint, TypeScript, 26 tests y build correctos. Prettier limitado a archivos modificados. No se agregaron dependencias.
-- Capturas temporales: `/tmp/linustec-planes-*-20261016.png`, `/tmp/linustec-planes-expanded-*-20261016.png` y `/tmp/linustec-configurador-*-20261016.png`.
+No se hizo reset, clean, commit, push ni deploy.

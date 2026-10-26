@@ -22,7 +22,6 @@ export async function submitConsultation(
     selectedChoiceIds: draft.selectedChoiceIds,
     selectedExtraIds: draft.selectedExtraIds,
     contact: draft.contact,
-    materialUrl: draft.materialUrl,
     turnstileToken,
   }
   const response = await fetch('/api/consultations', {

@@ -14,10 +14,10 @@ export const Section = styled.section`
 export const DisplayHeading = styled.h2`
   margin: 0;
   max-width: 870px;
-  font-family: ${({ theme }) => theme.fonts.display};
+  font-family: ${({ theme }) => theme.fonts.title};
   font-size: clamp(42px, 5.3vw, 72px);
-  line-height: 0.97;
-  letter-spacing: -0.045em;
+  font-weight: ${({ theme }) => theme.typography.titleWeight};
+  line-height: ${({ theme }) => theme.typography.titleLineHeight};
   text-transform: uppercase;
   .accent {
     color: ${({ theme }) => theme.colors.tealHeading};

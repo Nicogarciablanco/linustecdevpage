@@ -7,7 +7,6 @@ import { useStickyHeader } from '../hooks/useStickyHeader'
 import { Hero } from '../sections/Hero/Hero'
 import { Projects } from '../sections/Projects/Projects'
 import { Plans } from '../sections/Plans/Plans'
-import { Process } from '../sections/Process/Process'
 import { Contact } from '../sections/Contact/Contact'
 import type { PlanId } from '../types/plan'
 
@@ -15,6 +14,7 @@ export function App() {
   const [trigger, setTrigger] = useState<HTMLDivElement | null>(null)
   const sticky = useStickyHeader(trigger)
   const [selectedId, setSelectedId] = useState<PlanId | null>(null)
+  const [entry, setEntry] = useState<'base' | 'customize'>('customize')
   const [opener, setOpener] = useState<HTMLButtonElement | null>(null)
   const selectedPlan = plans.find((plan) => plan.id === selectedId)
 
@@ -27,12 +27,12 @@ export function App() {
         <Projects />
         <Plans
           selectedId={selectedId}
-          onSelect={(id, button) => {
+          onSelect={(id, button, nextEntry) => {
             setOpener(button)
+            setEntry(nextEntry)
             setSelectedId(id)
           }}
         />
-        <Process />
         <Contact />
       </main>
       <Footer />
@@ -40,6 +40,7 @@ export function App() {
         <PlanConfigurator
           key={selectedPlan.id}
           plan={selectedPlan}
+          entry={entry}
           opener={opener}
           onClose={() => setSelectedId(null)}
         />
