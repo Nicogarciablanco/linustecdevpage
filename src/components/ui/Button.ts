@@ -13,7 +13,7 @@ export const ButtonLink = styled.a<{ $variant?: 'primary' | 'secondary' }>`
   color: ${({ $variant, theme }) => ($variant === 'secondary' ? theme.colors.white : theme.colors.ink)};
   background: ${({ $variant, theme }) => ($variant === 'secondary' ? 'transparent' : theme.colors.teal)};
   box-shadow: ${({ $variant }) => ($variant === 'secondary' ? 'none' : '0 0 30px rgba(0,210,160,.23)')};
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   white-space: nowrap;
 `

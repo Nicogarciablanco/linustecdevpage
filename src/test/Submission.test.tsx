@@ -66,7 +66,6 @@ function review() {
     ['Correo electrónico', 'nico@example.com'],
     ['WhatsApp', '11 5555 4444'],
     ['¿Qué necesitás?', 'Proyecto con funciones propias.'],
-    ['Enlace al material', 'https://drive.google.com/drive/folders/example'],
   ] as const)
     fireEvent.change(screen.getByLabelText(label), { target: { value } })
   fireEvent.click(screen.getByRole('button', { name: 'Ver resumen' }))
@@ -77,80 +76,22 @@ function review() {
 }
 
 describe('consultation submission UI', () => {
-  it('shows the required shared-material URL as text in review and submits it', async () => {
+  it('sends the first consultation without requesting materials', async () => {
     const fetcher = vi
       .fn()
       .mockResolvedValue(
         Response.json({ ok: true, id: 'provider-confirmed-id' }),
       )
     vi.stubGlobal('fetch', fetcher)
-    render(
-      <ThemeProvider theme={theme}>
-        <PlanConfigurator
-          plan={plans.find((plan) => plan.id === 'medida')!}
-          opener={null}
-          onClose={vi.fn()}
-        />
-      </ThemeProvider>,
-    )
-    for (const [label, value] of [
-      ['Tu nombre', 'Nicolás Pérez'],
-      ['Negocio o actividad', 'Estudio Sur'],
-      ['Correo electrónico', 'nico@example.com'],
-      ['WhatsApp', '11 5555 4444'],
-      ['¿Qué necesitás?', 'Proyecto con funciones propias.'],
-    ] as const)
-      fireEvent.change(screen.getByLabelText(label), { target: { value } })
-    const link = 'https://drive.google.com/drive/folders/example'
-    fireEvent.change(screen.getByLabelText('Enlace al material'), {
-      target: { value: link },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Ver resumen' }))
-    expect(screen.getByText(link)).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: link })).not.toBeInTheDocument()
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Completar verificación de prueba' }),
-    )
+    review()
+    expect(
+      screen.queryByLabelText('Enlace al material'),
+    ).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Enviar consulta' }))
     await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1))
     const payload = JSON.parse(fetcher.mock.calls[0]![1].body)
-    expect(payload.materialUrl).toBe(link)
-    expect(payload).not.toHaveProperty('files')
-  })
-  it('requires an HTTP(S) folder link before review', () => {
-    vi.stubGlobal('fetch', vi.fn())
-    render(
-      <ThemeProvider theme={theme}>
-        <PlanConfigurator
-          plan={plans.find((plan) => plan.id === 'medida')!}
-          opener={null}
-          onClose={vi.fn()}
-        />
-      </ThemeProvider>,
-    )
-    for (const [label, value] of [
-      ['Tu nombre', 'Nicolás Pérez'],
-      ['Negocio o actividad', 'Estudio Sur'],
-      ['Correo electrónico', 'nico@example.com'],
-      ['WhatsApp', '11 5555 4444'],
-      ['¿Qué necesitás?', 'Proyecto con funciones propias.'],
-    ] as const)
-      fireEvent.change(screen.getByLabelText(label), { target: { value } })
-    fireEvent.click(screen.getByRole('button', { name: 'Ver resumen' }))
-    expect(
-      screen.getByText(planContent.form.materialUrl.error),
-    ).toBeInTheDocument()
-    expect(screen.getByLabelText('Enlace al material')).toHaveFocus()
-    fireEvent.change(screen.getByLabelText('Enlace al material'), {
-      target: { value: 'ftp://example.com/file' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Ver resumen' }))
-    expect(
-      screen.getByText(planContent.form.materialUrl.error),
-    ).toBeInTheDocument()
-    expect(
-      screen.queryByLabelText('Logo, textos, fotos o referencias'),
-    ).not.toBeInTheDocument()
+    expect(payload).not.toHaveProperty('materialUrl')
+    expect(payload.planId).toBe('medida')
   })
   it('shows success only after a provider-confirmed response and prevents parallel submissions', async () => {
     let resolve!: (response: Response) => void

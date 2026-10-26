@@ -1,29 +1,21 @@
 import type { Dispatch, SetStateAction } from 'react'
 import { planContent } from '../../data/plans'
 import { consultationPolicy } from '../../data/consultationPolicy'
-import type { Plan, RequestContact } from '../../types/plan'
-import { FormGrid, FormLabel, FormNote } from './PlanConfigurator.styles'
+import type { RequestContact } from '../../types/plan'
+import { FormGrid, FormLabel } from './PlanConfigurator.styles'
 
-export type FormErrors = Partial<
-  Record<keyof RequestContact | 'materialUrl', string>
->
+export type FormErrors = Partial<Record<keyof RequestContact, string>>
 
 export function RequestForm({
-  plan,
   contact,
-  materialUrl,
   errors,
   setContact,
   setErrors,
-  setMaterialUrl,
 }: {
-  plan: Plan
   contact: RequestContact
-  materialUrl: string
   errors: FormErrors
   setContact: Dispatch<SetStateAction<RequestContact>>
   setErrors: Dispatch<SetStateAction<FormErrors>>
-  setMaterialUrl: (value: string) => void
 }) {
   function update(field: keyof RequestContact, value: string) {
     setContact((current) => ({ ...current, [field]: value }))
@@ -128,32 +120,7 @@ export function RequestForm({
             ))}
           </select>
         </FormLabel>
-        <FormLabel className="wide">
-          {planContent.form.materialUrl.label}
-          <input
-            id="request-materialUrl"
-            type="url"
-            maxLength={consultationPolicy.maxMaterialUrlLength}
-            aria-label={planContent.form.materialUrl.label}
-            required
-            aria-invalid={!!errors.materialUrl}
-            aria-describedby={`help-materialUrl${errors.materialUrl ? ' error-materialUrl' : ''}`}
-            value={materialUrl}
-            onChange={(event) => {
-              setMaterialUrl(event.target.value)
-              setErrors((current) => ({ ...current, materialUrl: undefined }))
-            }}
-          />
-          <span id="help-materialUrl">{planContent.form.materialUrl.help}</span>
-          {errors.materialUrl && (
-            <small id="error-materialUrl">{errors.materialUrl}</small>
-          )}
-        </FormLabel>
       </FormGrid>
-      <FormNote>
-        {plan.material.join(' ')} {planContent.materialNote}{' '}
-        {planContent.startCondition}
-      </FormNote>
     </form>
   )
 }

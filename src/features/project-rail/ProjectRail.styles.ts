@@ -7,7 +7,7 @@ export const RailTrack = styled.div<{ $dragging: boolean }>`
   display: block;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 2px var(--page-gutter) 22px;
+  padding: 2px var(--page-gutter) 12px;
   background: ${({ theme }) => theme.colors.page};
   cursor: grab;
   user-select: none;
@@ -45,7 +45,7 @@ export const RailTrack = styled.div<{ $dragging: boolean }>`
 export const RailScrollbar = styled.div`
   position: relative;
   height: 20px;
-  margin-top: clamp(30px, 3.2vw, 60px);
+  margin-top: 12px;
   cursor: grab;
   touch-action: none;
 
@@ -55,9 +55,9 @@ export const RailScrollbar = styled.div`
     top: 50%;
     right: 0;
     left: 0;
-    height: 2px;
+    height: 4px;
     border-radius: 999px;
-    background: rgba(0, 0, 0, 0.14);
+    background: rgba(15, 23, 42, 0.2);
     transform: translateY(-50%);
   }
 
@@ -80,9 +80,9 @@ export const RailScrollbarThumb = styled.div`
   top: 50%;
   left: 0;
   width: 55%;
-  height: 5px;
+  height: 6px;
   border-radius: 999px;
-  background: #000;
+  background: ${({ theme }) => theme.colors.navy};
   transform: translateY(-50%);
 `
 
@@ -186,7 +186,7 @@ export const ProjectCard = styled.article`
 
 export const ProjectVisual = styled.div<{ $background: string }>`
   position: relative;
-  height: clamp(320px, calc(25.9vw - 3px), 495px);
+  height: clamp(300px, calc(24.3vw - 3px), 465px);
   display: grid;
   place-items: end center;
   overflow: hidden;
@@ -195,7 +195,7 @@ export const ProjectVisual = styled.div<{ $background: string }>`
 
   @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {
     height: auto;
-    aspect-ratio: 1;
+    aspect-ratio: 1.06;
   }
 `
 
@@ -217,7 +217,7 @@ export const BrowserMock = styled.div`
   border: 1px solid rgba(255, 255, 255, 0.62);
   border-radius: 20px 20px 0 0;
   background: rgba(250, 251, 248, 0.9);
-  box-shadow: 0 26px 80px rgba(2, 6, 23, 0.2);
+  box-shadow: 0 26px 80px rgba(15, 23, 42, 0.2);
   color: ${({ theme }) => theme.colors.ink};
 
   &::after {
@@ -242,7 +242,7 @@ export const BrowserDots = styled.div`
   display: flex;
   gap: 7px;
   padding-bottom: clamp(14px, 2vw, 28px);
-  border-bottom: 1px solid rgba(2, 6, 23, 0.13);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.13);
 
   i {
     width: 7px;
@@ -260,10 +260,10 @@ export const MockTitle = styled.div`
   justify-content: center;
   flex: 1;
   max-width: 100%;
-  font-family: ${({ theme }) => theme.fonts.display};
+  font-family: ${({ theme }) => theme.fonts.title};
   font-size: clamp(25px, 2vw, 34px);
-  line-height: 0.96;
-  letter-spacing: -0.06em;
+  font-weight: ${({ theme }) => theme.typography.titleWeight};
+  line-height: ${({ theme }) => theme.typography.titleLineHeight};
   overflow-wrap: anywhere;
 
   @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {
@@ -276,28 +276,27 @@ export const ProjectMeta = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  min-height: clamp(100px, calc(9.75vw - 33px), 154px);
   margin: 0 -8px -8px;
-  padding: 16px 20px 20px;
+  padding: 22px 20px;
   background: ${({ theme }) => theme.colors.surface};
 
   small {
+    display: inline-flex;
+    max-width: 100%;
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: rgba(0, 210, 160, 0.12);
     color: ${({ theme }) => theme.colors.tealText};
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+    font-family: ${({ theme }) => theme.fonts.text};
+    font-size: clamp(12px, 0.9vw, 13px);
+    font-weight: 700;
+    line-height: 1.2;
   }
 
   h3 {
-    margin: 6px 0 0;
+    margin: 10px 0 0;
     font-size: clamp(23px, 1.8vw, 28px);
     line-height: 1.06;
     letter-spacing: -0.035em;
-  }
-
-  @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {
-    min-height: 108px;
-    padding: 16px 20px 20px;
   }
 `

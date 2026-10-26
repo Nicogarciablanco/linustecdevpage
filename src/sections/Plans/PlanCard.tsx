@@ -3,12 +3,17 @@ import { useRef } from 'react'
 import type { PointerEvent } from 'react'
 import { formatPrice, planContent } from '../../data/plans'
 import type { Plan } from '../../types/plan'
-import { PlanArticle, PlanButton, PlanInclusions } from './Plans.styles'
+import {
+  PlanArticle,
+  PlanButton,
+  PlanInclusions,
+  PlanSecondaryButton,
+} from './Plans.styles'
 
 type Props = {
   plan: Plan
   selected: boolean
-  onSelect: (button: HTMLButtonElement) => void
+  onSelect: (button: HTMLButtonElement, entry: 'base' | 'customize') => void
   onPointerEnter: (event: PointerEvent<HTMLElement>) => void
   onPointerMove: (event: PointerEvent<HTMLElement>) => void
   onPointerLeave: () => void
@@ -21,14 +26,14 @@ export function PlanCard({
   onSelect,
   ...pointerHandlers
 }: Props) {
-  const buttonRef = useRef<HTMLButtonElement>(null)
+  const customizeRef = useRef<HTMLButtonElement>(null)
   return (
     <PlanArticle
       {...pointerHandlers}
       aria-labelledby={`plan-title-${plan.id}`}
       onClick={(event) => {
-        if ((event.target as Element).closest('button, details')) return
-        if (buttonRef.current) onSelect(buttonRef.current)
+        if ((event.target as Element).closest('button')) return
+        if (customizeRef.current) onSelect(customizeRef.current, 'customize')
       }}
     >
       <div className="plan-overview">
@@ -38,68 +43,46 @@ export function PlanCard({
         <h3 id={`plan-title-${plan.id}`}>{plan.headline}</h3>
         <p className="audience">{plan.audience}</p>
         <div className="price">
-          <span>{plan.priceLabel}</span>
           <strong>{formatPrice(plan.price)}</strong>
         </div>
-        <PlanButton
-          ref={buttonRef}
-          type="button"
-          aria-haspopup="dialog"
-          aria-expanded={selected}
-          aria-controls={selected ? 'plan-dialog' : undefined}
-          onClick={(event) => onSelect(event.currentTarget)}
-        >
-          {plan.id === 'medida'
-            ? planContent.customConfigure
-            : planContent.configure}
-          <ArrowRight size={16} aria-hidden="true" />
-        </PlanButton>
+        <div className="plan-actions">
+          {plan.id !== 'medida' && (
+            <PlanButton
+              type="button"
+              aria-haspopup="dialog"
+              aria-expanded={selected}
+              aria-controls={selected ? 'plan-dialog' : undefined}
+              onClick={(event) => onSelect(event.currentTarget, 'base')}
+            >
+              {planContent.baseAction}{' '}
+              <ArrowRight size={16} aria-hidden="true" />
+            </PlanButton>
+          )}
+          <PlanSecondaryButton
+            ref={customizeRef}
+            type="button"
+            aria-haspopup="dialog"
+            aria-expanded={selected}
+            aria-controls={selected ? 'plan-dialog' : undefined}
+            onClick={(event) => onSelect(event.currentTarget, 'customize')}
+          >
+            {plan.id === 'medida'
+              ? planContent.customAction
+              : planContent.customizeAction}
+          </PlanSecondaryButton>
+        </div>
       </div>
       <div className="plan-details">
-        <details>
-          <summary>{planContent.disclosures.included}</summary>
-          <div className="disclosure-content">
-            <p className="base-label">{plan.inclusionLabel}</p>
-            <PlanInclusions>
-              {plan.inclusions.map((item) => (
-                <li key={item.title}>
-                  <strong>{item.title}</strong>
-                  <span>{item.description}</span>
-                </li>
-              ))}
-            </PlanInclusions>
-          </div>
-        </details>
-        <details>
-          <summary>{planContent.disclosures.extras}</summary>
-          <div className="disclosure-content">
-            <div className="boundary">
-              <strong>{plan.boundaryLabel}</strong>
-              <p>{plan.boundary}</p>
-            </div>
-            {plan.extras.length > 0 && (
-              <ul className="extras-list">
-                {plan.extras.map((extra) => (
-                  <li key={extra.id}>
-                    <div>
-                      <strong>{extra.name}</strong>
-                      <p>{extra.description}</p>
-                    </div>
-                    <b>+ {formatPrice(extra.price)}</b>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </details>
-        <details>
-          <summary>{planContent.disclosures.material}</summary>
-          <ul className="material-list disclosure-content">
-            {plan.material.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-        </details>
+        <p className="base-label">{plan.inclusionLabel}</p>
+        <PlanInclusions>
+          {plan.inclusions.map((item) => (
+            <li key={item.title}>{item.title}</li>
+          ))}
+        </PlanInclusions>
+        <div className="boundary">
+          <strong>{plan.boundaryLabel}</strong>
+          <p>{plan.boundary}</p>
+        </div>
       </div>
     </PlanArticle>
   )

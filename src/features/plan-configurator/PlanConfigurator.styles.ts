@@ -13,7 +13,7 @@ export const Dialog = styled.dialog`
   background: ${({ theme }) => theme.colors.surface};
   box-shadow: ${({ theme }) => theme.shadows.dialog};
   &::backdrop {
-    background: rgba(2, 6, 23, 0.68);
+    background: rgba(15, 23, 42, 0.68);
     backdrop-filter: blur(5px);
   }
 `
@@ -60,7 +60,8 @@ export const DialogTop = styled.div`
 export const DialogTitle = styled(DisplayHeading)`
   max-width: 580px;
   font-size: clamp(26px, 3.7vw, 38px);
-  line-height: 1.07;
+  font-weight: ${({ theme }) => theme.typography.titleWeight};
+  line-height: ${({ theme }) => theme.typography.titleLineHeight};
   &:focus {
     outline: none;
   }
@@ -80,6 +81,10 @@ export const CloseButton = styled.button`
   color: ${({ theme }) => theme.colors.ink};
   background: ${({ theme }) => theme.colors.surface};
   cursor: pointer;
+  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    width: 44px;
+    height: 44px;
+  }
 `
 
 export const StepList = styled.ol`
@@ -118,7 +123,7 @@ export const DialogCopy = styled.p`
 
 export const FieldTitle = styled.h3`
   margin: 0 0 12px;
-  font-family: ${({ theme }) => theme.fonts.body};
+  font-family: ${({ theme }) => theme.fonts.text};
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -356,6 +361,12 @@ export const DialogFooter = styled.footer`
     padding-inline: 18px;
     font-size: 12px;
     box-shadow: none;
+  }
+  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    button {
+      min-height: 48px;
+      font-size: 14px;
+    }
   }
   @media (max-width: 750px) {
     align-items: flex-start;

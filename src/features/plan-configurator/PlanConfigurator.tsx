@@ -3,7 +3,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { MouseEvent } from 'react'
 import { PrimaryButton } from '../../components/ui/Button'
 import { planContent } from '../../data/plans'
-import { validMaterialUrl } from '../../data/consultationPolicy'
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 import type { Plan, PlanRequestDraft, RequestContact } from '../../types/plan'
 import type { SubmissionErrorCode } from '../../types/consultation'
@@ -26,7 +25,7 @@ import {
   StepList,
 } from './PlanConfigurator.styles'
 
-type Step = 'options' | 'details' | 'review'
+type Step = 'options' | 'details' | 'extraPrompt' | 'review'
 const tokenMaxAgeMs = 285_000
 type VerificationToken = { value: string; receivedAt: number }
 const emptyContact: RequestContact = {
@@ -38,7 +37,7 @@ const emptyContact: RequestContact = {
   domain: 'register',
 }
 
-function validate(contact: RequestContact, materialUrl: string): FormErrors {
+function validate(contact: RequestContact): FormErrors {
   const errors: FormErrors = {}
   if (!contact.name.trim()) errors.name = planContent.form.name.error
   if (!contact.business.trim())
@@ -48,31 +47,31 @@ function validate(contact: RequestContact, materialUrl: string): FormErrors {
   if (contact.phone.replace(/\D/g, '').length < 8)
     errors.phone = planContent.form.phone.error
   if (!contact.message.trim()) errors.message = planContent.form.message.error
-  if (!validMaterialUrl(materialUrl))
-    errors.materialUrl = planContent.form.materialUrl.error
   return errors
 }
 
 export function PlanConfigurator({
   plan,
+  entry = 'customize',
   opener,
   onClose,
 }: {
   plan: Plan
+  entry?: 'base' | 'customize'
   opener: HTMLButtonElement | null
   onClose: () => void
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const [step, setStep] = useState<Step>(
-    plan.id === 'medida' ? 'details' : 'options',
+    plan.id === 'medida' || entry === 'base' ? 'details' : 'options',
   )
+  const [fromPrompt, setFromPrompt] = useState(false)
   const [selectedChoices, setSelectedChoices] = useState<string[]>(
     plan.defaultChoices,
   )
   const [selectedExtras, setSelectedExtras] = useState<string[]>([])
   const [contact, setContact] = useState<RequestContact>(emptyContact)
-  const [materialUrl, setMaterialUrl] = useState('')
   const [errors, setErrors] = useState<FormErrors>({})
   const [submission, setSubmission] = useState<
     'idle' | 'sending' | 'sent' | 'error'
@@ -114,7 +113,6 @@ export function PlanConfigurator({
     selectedChoiceIds: selectedChoices,
     selectedExtraIds: selectedExtras,
     contact,
-    materialUrl,
     status: 'draft',
   }
 
@@ -193,17 +191,21 @@ export function PlanConfigurator({
 
   function goNext() {
     if (step === 'options') {
-      setStep('details')
+      setStep(fromPrompt ? 'review' : 'details')
       return
     }
     if (step === 'details') {
-      const nextErrors = validate(contact, materialUrl)
+      const nextErrors = validate(contact)
       setErrors(nextErrors)
       const first = Object.keys(nextErrors)[0]
       if (first) {
         document.getElementById(`request-${first}`)?.focus()
         return
       }
+      setStep(entry === 'base' && !custom ? 'extraPrompt' : 'review')
+      return
+    }
+    if (step === 'extraPrompt') {
       setStep('review')
       return
     }
@@ -216,11 +218,20 @@ export function PlanConfigurator({
         { id: 'details', name: `01 · ${planContent.steps.customDetails}` },
         { id: 'review', name: `02 · ${planContent.steps.review}` },
       ]
-    : [
-        { id: 'options', name: `01 · ${planContent.steps.options}` },
-        { id: 'details', name: `02 · ${planContent.steps.details}` },
-        { id: 'review', name: `03 · ${planContent.steps.review}` },
-      ]
+    : entry === 'base'
+      ? [
+          { id: 'details', name: `01 · ${planContent.steps.details}` },
+          {
+            id: fromPrompt ? 'options' : 'extraPrompt',
+            name: `02 · ${planContent.steps.options}`,
+          },
+          { id: 'review', name: `03 · ${planContent.steps.review}` },
+        ]
+      : [
+          { id: 'options', name: `01 · ${planContent.steps.options}` },
+          { id: 'details', name: `02 · ${planContent.steps.details}` },
+          { id: 'review', name: `03 · ${planContent.steps.review}` },
+        ]
 
   return (
     <Dialog
@@ -245,11 +256,13 @@ export function PlanConfigurator({
             <p>
               {step === 'review'
                 ? planContent.dialog.review
-                : custom
-                  ? planContent.dialog.details
-                  : step === 'options'
-                    ? planContent.dialog.options
-                    : planContent.dialog.details}
+                : step === 'extraPrompt'
+                  ? planContent.extrasPrompt
+                  : custom
+                    ? planContent.dialog.details
+                    : step === 'options'
+                      ? planContent.dialog.options
+                      : planContent.dialog.details}
             </p>
             <DialogTitle id="plan-dialog-title" ref={titleRef} tabIndex={-1}>
               {plan.name}
@@ -305,14 +318,26 @@ export function PlanConfigurator({
         )}
         {step === 'details' && (
           <RequestForm
-            plan={plan}
             contact={contact}
-            materialUrl={materialUrl}
             errors={errors}
             setContact={setContact}
             setErrors={setErrors}
-            setMaterialUrl={setMaterialUrl}
           />
+        )}
+        {step === 'extraPrompt' && (
+          <div>
+            <h3>{planContent.extrasPrompt}</h3>
+            <DialogCopy>{planContent.extrasPromptCopy}</DialogCopy>
+            <SecondaryButton
+              type="button"
+              onClick={() => {
+                setFromPrompt(true)
+                setStep('options')
+              }}
+            >
+              {planContent.addExtras}
+            </SecondaryButton>
+          </div>
         )}
         {step === 'review' && (
           <>
@@ -368,7 +393,7 @@ export function PlanConfigurator({
                 : planContent.standardNote}
           </p>
           <div>
-            {step !== (custom ? 'details' : 'options') &&
+            {step !== (custom || entry === 'base' ? 'details' : 'options') &&
               submission !== 'sent' && (
                 <SecondaryButton
                   type="button"
@@ -376,7 +401,19 @@ export function PlanConfigurator({
                     setSubmission('idle')
                     setSubmissionError(null)
                     updateToken('')
-                    setStep(step === 'review' ? 'details' : 'options')
+                    setStep(
+                      step === 'review'
+                        ? custom || entry !== 'base'
+                          ? 'details'
+                          : fromPrompt
+                            ? 'options'
+                            : 'extraPrompt'
+                        : step === 'options' && fromPrompt
+                          ? 'extraPrompt'
+                          : step === 'extraPrompt'
+                            ? 'details'
+                            : 'options',
+                    )
                   }}
                   disabled={submission === 'sending'}
                 >
@@ -393,14 +430,20 @@ export function PlanConfigurator({
               }
             >
               {step === 'options'
-                ? planContent.dialog.next
-                : step === 'details'
+                ? fromPrompt
                   ? planContent.dialog.reviewNext
-                  : submission === 'sent'
-                    ? planContent.submission.sent
-                    : submission === 'sending'
-                      ? planContent.submission.sending
-                      : planContent.submission.send}
+                  : planContent.dialog.next
+                : step === 'details'
+                  ? entry === 'base' && !custom
+                    ? planContent.dialog.next
+                    : planContent.dialog.reviewNext
+                  : step === 'extraPrompt'
+                    ? planContent.skipExtras
+                    : submission === 'sent'
+                      ? planContent.submission.sent
+                      : submission === 'sending'
+                        ? planContent.submission.sending
+                        : planContent.submission.send}
               {submission !== 'sent' && (
                 <ArrowRight size={16} aria-hidden="true" />
               )}

@@ -1,4 +1,9 @@
 import styled from 'styled-components'
+
+export const ProcessBlock = styled.div`
+  margin-top: clamp(72px, 7vw, 108px);
+`
+
 export const ProcessGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -9,6 +14,7 @@ export const ProcessGrid = styled.div`
     grid-template-columns: 1fr;
   }
 `
+
 export const Step = styled.article`
   min-height: 210px;
   padding: 28px 28px 20px 0;

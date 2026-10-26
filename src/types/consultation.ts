@@ -6,7 +6,6 @@ export interface ConsultationPayload {
   selectedChoiceIds: string[]
   selectedExtraIds: string[]
   contact: RequestContact
-  materialUrl: string
   turnstileToken: string
 }
 

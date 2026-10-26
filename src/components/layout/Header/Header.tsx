@@ -18,7 +18,6 @@ export function Header({ sticky }: { sticky: boolean }) {
         <Navigation aria-label="Principal">
           <a href="#trabajos">Proyectos</a>
           <a href="#planes">Planes</a>
-          <a href="#proceso">Proceso</a>
           <a href="#contacto">Contacto</a>
         </Navigation>
         <HeaderActions $sticky={sticky} aria-hidden={!sticky}>

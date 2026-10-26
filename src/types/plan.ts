@@ -34,7 +34,6 @@ export interface Plan {
   boundaryLabel: string
   boundary: string
   material: string[]
-  priceLabel: string
   price: Price
   choices: PlanChoice[]
   choiceMode: 'single' | 'multiple'
@@ -58,6 +57,5 @@ export interface PlanRequestDraft {
   selectedChoiceIds: string[]
   selectedExtraIds: string[]
   contact: RequestContact
-  materialUrl: string
   status: 'draft'
 }

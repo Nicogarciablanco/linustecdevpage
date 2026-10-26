@@ -28,6 +28,12 @@ export function SelectionSummary({
             <strong>{planContent.included}</strong>
           </div>
         ))}
+      {extras.length === 0 && (
+        <div className="row">
+          <span>{planContent.extrasLabel}</span>
+          <strong>{planContent.noExtras}</strong>
+        </div>
+      )}
       {extras.map((extra) => (
         <div className="row" key={extra.id}>
           <span>{extra.name}</span>
@@ -87,10 +93,6 @@ export function RequestSummary({
         <div>
           <dt>{planContent.form.message.label}</dt>
           <dd>{request.contact.message}</dd>
-        </div>
-        <div>
-          <dt>{planContent.form.materialUrl.label}</dt>
-          <dd>{request.materialUrl}</dd>
         </div>
       </dl>
       <p className="review-note">

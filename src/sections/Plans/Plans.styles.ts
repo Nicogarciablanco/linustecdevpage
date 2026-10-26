@@ -9,11 +9,6 @@ export const PlansSection = styled(Section)`
   h3 {
     color: ${({ theme }) => theme.colors.ink};
   }
-  .plans-note {
-    margin: 22px 0 0;
-    color: ${({ theme }) => theme.colors.textSecondary};
-    font-size: 12px;
-  }
   @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {
     border-radius: 24px;
   }
@@ -21,66 +16,51 @@ export const PlansSection = styled(Section)`
 
 export const PlanGrid = styled.div`
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 24px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  @media (max-width: 1279px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  @media (max-width: 700px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 `
 
-export const PlanInclusions = styled.ol`
+export const PlanInclusions = styled.ul`
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-  margin: 0 0 24px;
+  gap: 12px;
+  margin: 0;
   padding: 0;
   list-style: none;
-  counter-reset: inclusion;
   li {
     position: relative;
-    padding-left: 38px;
+    padding-left: 18px;
     color: ${({ theme }) => theme.colors.textSecondary};
     font-size: 13px;
-    line-height: 1.55;
-    counter-increment: inclusion;
-    &::before {
-      content: counter(inclusion, decimal-leading-zero);
-      position: absolute;
-      top: 0;
-      left: 0;
-      color: ${({ theme }) => theme.colors.tealText};
-      font-weight: 800;
-    }
+    line-height: 1.45;
   }
-  strong {
-    display: block;
-    margin-bottom: 3px;
-    color: ${({ theme }) => theme.colors.ink};
-    font-size: 14px;
-  }
-  @media (max-width: 1200px) {
-    grid-template-columns: minmax(0, 1fr);
+  li::before {
+    content: '';
+    position: absolute;
+    top: 0.55em;
+    left: 0;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: ${({ theme }) => theme.colors.tealHeading};
   }
 `
 
 export const PlanArticle = styled.article`
   position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.4fr);
-  align-items: start;
-  gap: clamp(28px, 4vw, 72px);
+  display: flex;
+  flex-direction: column;
   min-width: 0;
-  padding: clamp(24px, 2.3vw, 40px);
+  padding: clamp(18px, 1.5vw, 24px);
   border: 1px solid #cfd6d5;
   border-radius: ${({ theme }) => theme.radius.plan};
   background: ${({ theme }) => theme.colors.page};
   transition: border-color 0.2s;
-  .plan-overview,
-  .plan-details {
-    min-width: 0;
-  }
-  .plan-overview {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-  }
   &:hover,
   &:focus-within {
     border-color: ${({ theme }) => theme.colors.tealDark};
@@ -89,158 +69,95 @@ export const PlanArticle = styled.article`
   &[data-cursor-active='true'] * {
     cursor: none;
   }
+  .plan-overview {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 330px;
+  }
   .number {
-    margin-bottom: 30px;
+    margin-bottom: 18px;
     color: ${({ theme }) => theme.colors.tealText};
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 800;
     letter-spacing: 0.05em;
-    line-height: 1.5;
     text-transform: uppercase;
   }
   h3 {
-    max-width: 540px;
-    margin: 0 0 18px;
-    font-family: ${({ theme }) => theme.fonts.display};
-    font-size: clamp(24px, 2.1vw, 29px);
-    font-weight: 400;
-    line-height: 1.08;
-    letter-spacing: -0.055em;
+    margin: 0 0 12px;
+    font-family: ${({ theme }) => theme.fonts.title};
+    font-size: clamp(25px, 2.1vw, 30px);
+    font-weight: ${({ theme }) => theme.typography.titleWeight};
+    line-height: ${({ theme }) => theme.typography.titleLineHeight};
     text-transform: uppercase;
     overflow-wrap: break-word;
   }
   .audience {
-    margin: 0 0 22px;
+    margin: 0 0 20px;
     color: ${({ theme }) => theme.colors.textSecondary};
     font-size: 13px;
-    line-height: 1.6;
+    line-height: 1.5;
+  }
+  .price {
+    margin-top: auto;
+    margin-bottom: 14px;
+  }
+  .price strong {
+    color: ${({ theme }) => theme.colors.ink};
+    font-size: 24px;
+  }
+  .plan-actions {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .plan-details {
+    min-width: 0;
+    padding-top: 18px;
+    border-top: 1px solid #c6cecb;
   }
   .base-label {
-    margin: 3px 0 21px;
+    margin: 0 0 15px;
     color: ${({ theme }) => theme.colors.tealText};
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
     letter-spacing: 0.04em;
     text-transform: uppercase;
   }
   .boundary {
-    margin-bottom: 20px;
+    margin: 18px 0 0;
+    color: ${({ theme }) => theme.colors.textSecondary};
     font-size: 12px;
-    line-height: 1.6;
-    strong {
-      display: block;
-      margin-bottom: 7px;
-    }
-    p {
-      margin: 0;
-      color: ${({ theme }) => theme.colors.textSecondary};
+    line-height: 1.5;
+  }
+  .boundary strong {
+    color: ${({ theme }) => theme.colors.ink};
+  }
+  .boundary p {
+    margin: 5px 0 0;
+  }
+  @media (max-width: 1279px) {
+    .plan-overview {
+      min-height: 290px;
     }
   }
-  details {
-    border-bottom: 1px solid #c6cecb;
-    color: ${({ theme }) => theme.colors.textSecondary};
-    font-size: 13px;
-    line-height: 1.55;
-    summary {
-      padding: 20px 0;
-      color: ${({ theme }) => theme.colors.ink};
-      font-weight: 700;
-      cursor: pointer;
-      overflow-wrap: break-word;
-    }
-    summary::marker {
-      color: ${({ theme }) => theme.colors.tealText};
-    }
-    summary:focus-visible {
-      outline: 3px solid ${({ theme }) => theme.colors.tealText};
-      outline-offset: 2px;
-    }
-  }
-  details:first-child {
-    border-top: 1px solid #c6cecb;
-  }
-  .disclosure-content {
-    margin: 0;
-    padding: 2px 0 22px;
-  }
-  .material-list {
-    display: grid;
-    gap: 8px;
-    padding-left: 18px;
-  }
-  .extras-list {
-    display: grid;
-    gap: 18px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    li {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 12px;
-    }
-    li > div {
-      min-width: 0;
-    }
-    strong {
-      color: ${({ theme }) => theme.colors.ink};
-    }
-    p {
-      margin: 4px 0 0;
-    }
-    b {
-      color: ${({ theme }) => theme.colors.tealText};
-      white-space: nowrap;
-      font-size: 12px;
-    }
-  }
-  .price {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 3px 8px;
-    width: 100%;
-    max-width: 420px;
-    margin-top: 12px;
-    margin-bottom: 22px;
-    color: ${({ theme }) => theme.colors.textSecondary};
-    font-size: 11px;
-    strong {
-      color: ${({ theme }) => theme.colors.ink};
-      font-size: 16px;
-      white-space: nowrap;
-    }
-  }
-  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 28px;
-    .audience {
-      max-width: 560px;
-    }
-  }
-  @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {
-    padding: 22px;
-    .number {
-      margin-bottom: 18px;
-    }
-    .extras-list li {
-      flex-wrap: wrap;
-      gap: 4px;
+  @media (max-width: 700px) {
+    .plan-overview {
+      min-height: 0;
     }
   }
 `
 
 export const PlanButton = styled.button`
   display: inline-flex;
-  min-height: 44px;
+  min-height: 46px;
+  width: 100%;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 13px 18px;
-  border: 0;
-  border-radius: 30px;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: ${({ theme }) => theme.radius.pill};
   color: ${({ theme }) => theme.colors.ink};
   background: ${({ theme }) => theme.colors.teal};
   font-size: 12px;
@@ -250,6 +167,16 @@ export const PlanButton = styled.button`
     outline: 3px solid ${({ theme }) => theme.colors.tealText};
     outline-offset: 3px;
   }
+  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    min-height: 48px;
+    font-size: 14px;
+  }
+`
+
+export const PlanSecondaryButton = styled(PlanButton)`
+  border-color: ${({ theme }) => theme.colors.tealHeading};
+  background: transparent;
+  color: ${({ theme }) => theme.colors.tealText};
 `
 
 export const PlanCursor = styled.div`
