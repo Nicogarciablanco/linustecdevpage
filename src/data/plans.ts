@@ -1,43 +1,41 @@
-import type { DomainStatus, Plan, Price } from '../types/plan'
+import type { DomainStatus, Plan, PlanExtra, Price } from '../types/plan'
 
 // Textos compartidos de Planes y del configurador. Los alcances por producto están debajo.
 export const planContent = {
-  heading: 'Elegí un plan. Adaptalo a',
+  heading: 'Elegí un plan',
+  headingSecondLine: 'Adaptalo a',
   headingAccent: 'tu negocio.',
   introduction:
-    'Compará lo que incluye cada base. Podés consultar el plan tal como está o personalizarlo con extras.',
-  baseAction: 'Comprar base',
-  customizeAction: 'Personalizar plan',
+    'Compará qué incluye cada plan y sumá solo los extras que necesita tu proyecto.',
+  baseAction: 'Comprar ahora',
   customAction: 'Consultar proyecto',
+  detailAction: '¿Querés saber más?',
+  detailBack: 'Volver a Planes',
+  detailScope: 'Alcance y límites',
   extrasPrompt: '¿Te faltó sumar algún extra?',
   extrasPromptCopy:
-    'Podés revisar los adicionales disponibles antes de enviar la consulta. Conservamos los datos que ya completaste.',
+    'Podés revisar los adicionales disponibles antes de completar la solicitud.',
   addExtras: 'Agregar extras',
   skipExtras: 'Seguir sin extras',
   processHeading: 'Claro desde el primer',
   processHeadingAccent: 'paso.',
   processIntroduction:
-    'Sin llamadas innecesarias ni presupuestos ambiguos. El proyecto comienza cuando el alcance, el material y la seña están confirmados.',
+    'Tres etapas claras, desde la elección del plan hasta el comienzo del trabajo.',
   processSteps: [
     {
       number: '01',
-      title: 'Elegís',
-      copy: 'Seleccionás una solución y los extras que necesita tu proyecto.',
+      title: 'Elegís y revisás',
+      copy: 'Seleccionás un plan y sus extras. Antes de avanzar, ves el alcance, el total y la seña del 50 %.',
     },
     {
       number: '02',
-      title: 'Enviás',
-      copy: 'Completás el formulario guiado. Los materiales los pediremos después de verificar la seña.',
+      title: 'Transferís y verificamos',
+      copy: 'Transferís la seña y enviás el comprobante. LinusTec verifica el pago manualmente y te contacta.',
     },
     {
       number: '03',
-      title: 'Validamos',
-      copy: 'Confirmamos alcance, precio y datos de pago; luego verificamos manualmente la acreditación.',
-    },
-    {
-      number: '04',
-      title: 'Comenzamos',
-      copy: 'Con la seña acreditada, reunimos tus materiales mediante un Google Form y comenzamos el desarrollo.',
+      title: 'Preparamos el inicio',
+      copy: 'Con el pago verificado, te pedimos los materiales y empezamos el desarrollo según el alcance acordado.',
     },
   ],
   included: 'Incluido',
@@ -46,9 +44,7 @@ export const planContent = {
   includedOptions: 'Opciones de la solución base',
   includedOptionsNote: 'Estas opciones están incluidas en el precio base.',
   extrasHeading: '¿Querés sumar algo?',
-  pendingPrice: 'AR$***',
   quotePrice: 'A cotizar',
-  pendingPriceNote: 'Los importes están pendientes de definir.',
   startCondition:
     'El trabajo comienza después de confirmar el alcance, verificar manualmente la seña y recibir los materiales acordados.',
   standardNote:
@@ -57,11 +53,15 @@ export const planContent = {
   reviewNote:
     'Revisá el plan, los extras y tus datos antes de enviar la consulta.',
   submission: {
-    send: 'Enviar consulta',
-    sending: 'Enviando consulta…',
-    sent: 'Consulta enviada',
+    send: 'Enviar solicitud y comprobante',
+    customSend: 'Enviar consulta',
+    sending: 'Enviando solicitud…',
+    sent: 'Solicitud recibida',
+    customSent: 'Consulta enviada',
     success:
-      'El servicio de correo aceptó el envío de tu consulta. Te responderemos por los datos de contacto que dejaste.',
+      'Recibimos tu solicitud y comprobante. El pago está pendiente de verificación manual. Te contactaremos por correo o WhatsApp después de comprobar la transferencia.',
+    customSuccess:
+      'Recibimos tu consulta para cotizar. Te contactaremos por correo o WhatsApp; todavía no hay precio ni seña definidos.',
     unavailable:
       'El envío todavía no está habilitado. Tus datos se conservan mientras mantengas abierto el configurador.',
     verificationError:
@@ -71,7 +71,11 @@ export const planContent = {
       unavailable:
         'El servicio de envío no está disponible. Conservamos tus datos; reintentá más tarde.',
       invalid_data:
-        'Revisá los datos de contacto y las opciones del plan antes de enviar.',
+        'Revisá tus datos, el comprobante y las opciones del plan antes de enviar.',
+      invalid_coupon:
+        'El cupón no es válido para esta selección. Revisalo o quitá el código.',
+      invalid_receipt:
+        'El comprobante debe ser PDF, PNG o JPG y pesar como máximo 2 MB.',
       invalid_token:
         'La verificación venció o no es válida. Completala de nuevo y reintentá.',
       too_large:
@@ -85,10 +89,25 @@ export const planContent = {
     },
   },
   selectionHeading: 'Tu selección',
-  totalLabel: 'Total seleccionado',
+  subtotalLabel: 'Subtotal',
+  discountLabel: 'Descuento',
+  totalLabel: 'Precio total del proyecto',
+  depositLabel: 'Seña del 50 % :',
+  depositNote: 'La seña forma parte del total; no se suma aparte.',
+  paymentHeading: 'Transferencia para la seña',
+  paymentAlias: 'nicojngbmp',
+  paymentNote:
+    'El envío del comprobante no acredita el pago. LinusTec lo verificará manualmente.',
+  paymentReviewStatus: 'Pago: pendiente de verificación manual',
+  materialsAfterPayment:
+    'Después de verificar la seña, LinusTec enviará un Google Form para textos, logo, fotos, videos y enlaces.',
+  couponLabel: 'Cupón de descuento',
+  couponApply: 'Aplicar',
+  couponInvalid: 'El cupón no es válido o no está disponible para este plan.',
   reviewHeading: 'Resumen de tu solicitud',
   steps: {
     options: 'Opciones y extras',
+    quote: 'Precio y seña',
     details: 'Tu proyecto',
     customDetails: 'Tu idea y referencias',
     review: 'Resumen',
@@ -130,6 +149,11 @@ export const planContent = {
       error: 'Contanos brevemente qué necesitás.',
     },
     domainLabel: 'Dominio',
+    receipt: {
+      label: 'Comprobante de la transferencia',
+      help: 'Adjuntá un PDF, PNG o JPG de hasta 2 MB. No envíes otros materiales todavía.',
+      error: 'Adjuntá un comprobante PDF, PNG o JPG de hasta 2 MB.',
+    },
   },
   domainOptions: [
     { value: 'register', label: 'Necesito registrar un dominio' },
@@ -138,7 +162,50 @@ export const planContent = {
   ] satisfies { value: DomainStatus; label: string }[],
 }
 
-// Contenido comercial, límites y precios: editar aquí. 'pending' muestra AR$***.
+// Extras comunes: importes de desarrollo por única vez. Editar precios aquí.
+const commonExtras: PlanExtra[] = [
+  {
+    id: 'section',
+    name: 'Sección adicional',
+    description:
+      'Una sección nueva de contenido dentro de una página existente.',
+    price: { status: 'defined', amount: 60000 },
+  },
+  {
+    id: 'page',
+    name: 'Página adicional',
+    description:
+      'Una página de contenido con hasta tres secciones. Las secciones extra se cobran por separado.',
+    price: { status: 'defined', amount: 120000 },
+  },
+  {
+    id: 'webpayment',
+    name: 'Cobro electrónico en la web de tu negocio',
+    description:
+      'Un proveedor, cobros únicos y confirmación en servidor. Comisiones del proveedor aparte. No es el pago de la seña a LinusTec.',
+    price: { status: 'defined', amount: 100000 },
+  },
+]
+const panelPrices = { simple: 100000, photos: 150000 }
+const panelExtras = (id = 'panel'): PlanExtra[] => [
+  {
+    id,
+    name: 'Panel autoadministrable sin carga de fotos',
+    description:
+      'Actualizás textos y datos del contenido acordado. No incluye subir imágenes.',
+    price: { status: 'defined', amount: panelPrices.simple },
+    group: 'panel',
+  },
+  {
+    id: 'panelphotos',
+    name: 'Panel autoadministrable con carga de fotos',
+    description: `Incluye el panel anterior y la carga de fotos. Precio total de esta variante; diferencia de ${formatPrice({ status: 'defined', amount: panelPrices.photos - panelPrices.simple })}.`,
+    price: { status: 'defined', amount: panelPrices.photos },
+    group: 'panel',
+  },
+]
+
+// Contenido comercial, límites y precios: editar aquí.
 export const plans: Plan[] = [
   {
     id: 'gastronomico',
@@ -207,60 +274,41 @@ export const plans: Plan[] = [
     ],
     boundaryLabel: 'Se solicita aparte',
     boundary:
-      'Panel para editar la carta, reservas de mesas, carga adicional y cambios posteriores. Pagos online, stock, caja y comandas requieren un alcance propio.',
+      'Carga adicional y cambios posteriores se acuerdan aparte. Stock, caja y comandas requieren un alcance propio.',
     material: [
       'Logo, colores y datos del local.',
       'Menú legible con nombres, descripciones y precios.',
       'Fotos, horarios, WhatsApp y condiciones de retiro o envío.',
     ],
     price: {
-      status: 'pending',
+      status: 'defined',
+      amount: 220000,
     },
     extras: [
+      ...commonExtras,
+      ...panelExtras(),
       {
-        id: 'products',
-        name: 'Carga inicial adicional',
+        id: 'deliverycalc',
+        name: 'Cálculo automático de delivery',
         description:
-          'Productos o subcategorías por encima del límite incluido.',
-        price: {
-          status: 'pending',
-        },
-      },
-      {
-        id: 'panel',
-        name: 'Panel para editar la carta',
-        description:
-          'Cambiar productos, precios, textos e imágenes por tu cuenta.',
-        price: {
-          status: 'pending',
-        },
+          'Reglas de cálculo acordadas para zonas o recorridos. Un servicio externo de rutas, si hace falta, se paga aparte y no se promete gratuito.',
+        price: { status: 'defined', amount: 50000 },
       },
       {
         id: 'tables',
         name: 'Reservas de mesas',
         description:
-          'Disponibilidad por horario y cupos de personas, con panel para gestionar reservas. El local asigna las mesas.',
-        price: {
-          status: 'pending',
-        },
+          'Desarrollamos la reserva por fecha, horario y cantidad de personas, con control de capacidad, disponibilidad y duplicados en servidor. Un salón y horarios configurados. Plano informativo sin elegir mesa.',
+        price: { status: 'defined', amount: 160000 },
+        group: 'tables',
       },
       {
-        id: 'gallery',
-        name: 'Galería de fotos',
+        id: 'tableselection',
+        name: 'Reservas con elección de mesa',
         description:
-          'Una sección adicional con imágenes de tu local o tus platos.',
-        price: {
-          status: 'pending',
-        },
-      },
-      {
-        id: 'updates',
-        name: 'Cambios menores por LinusTec',
-        description:
-          'Un servicio posterior para actualizaciones pequeñas; la cantidad de cambios se define antes de contratar.',
-        price: {
-          status: 'pending',
-        },
+          'Desarrollamos la reserva anterior y la selección de una mesa disponible en plano. Un salón, mesas identificadas con capacidad y horarios configurados. Combinaciones y múltiples salones van a medida.',
+        price: { status: 'defined', amount: 260000 },
+        group: 'tables',
       },
     ],
   },
@@ -285,7 +333,7 @@ export const plans: Plan[] = [
     defaultChoices: ['catalogo', 'whatsapp'],
     name: 'Servicios y reservas',
     summary:
-      'Una página para mostrar tus servicios y productos relacionados, y permitir que tus clientes reserven un turno. El modelo se organiza alrededor de una agenda.',
+      'Presentá tus servicios y, por separado, ofrecé turnos con una agenda básica para un profesional o recurso.',
     inclusionLabel: 'Qué incluye de base',
     inclusions: [
       {
@@ -311,7 +359,7 @@ export const plans: Plan[] = [
       {
         title: 'Disponibilidad y reserva de turnos',
         description:
-          'El cliente elige servicio, fecha y horario. Ve si hay disponibilidad y completa los datos para confirmar un turno.',
+          'El cliente elige servicio, fecha y horario dentro de una ventana limitada de reserva. El servidor comprueba disponibilidad y evita turnos duplicados.',
       },
       {
         title: 'Panel básico para gestionar reservas',
@@ -326,52 +374,17 @@ export const plans: Plan[] = [
     ],
     boundaryLabel: 'Se solicita aparte',
     boundary:
-      'Panel para editar el catálogo, carga adicional, más profesionales o recursos, cobros y recordatorios. El catálogo de productos no incluye tienda, stock ni pagos online. Reservas de hotel necesitan otro modelo.',
+      'Panel avanzado, carga adicional, más profesionales, pagos de turnos y recordatorios se acuerdan aparte. El catálogo informativo no incluye tienda ni stock.',
     material: [
       'Logo, imágenes y datos del negocio.',
       'Listado de servicios, duración y precios; productos si corresponde.',
       'Horarios, días de atención y reglas de reserva.',
     ],
     price: {
-      status: 'pending',
+      status: 'defined',
+      amount: 300000,
     },
-    extras: [
-      {
-        id: 'catalogpanel',
-        name: 'Panel para editar servicios y productos',
-        description:
-          'Actualizar el contenido del catálogo por tu cuenta; distinto del panel básico de reservas incluido.',
-        price: {
-          status: 'pending',
-        },
-      },
-      {
-        id: 'products',
-        name: 'Carga inicial adicional',
-        description:
-          'Más servicios o productos que los que se acuerden para la base.',
-        price: {
-          status: 'pending',
-        },
-      },
-      {
-        id: 'gallery',
-        name: 'Galería de fotos',
-        description: 'Mostrá el espacio y los servicios.',
-        price: {
-          status: 'pending',
-        },
-      },
-      {
-        id: 'updates',
-        name: 'Cambios menores por LinusTec',
-        description:
-          'Actualizaciones posteriores del contenido; cantidad y frecuencia acordadas.',
-        price: {
-          status: 'pending',
-        },
-      },
-    ],
+    extras: [...commonExtras, ...panelExtras('catalogpanel')],
   },
   {
     id: 'institucional',
@@ -385,16 +398,12 @@ export const plans: Plan[] = [
         id: 'onepage',
         name: 'Una página con secciones',
       },
-      {
-        id: 'multipage',
-        name: 'Páginas separadas, hasta cuatro',
-      },
     ],
     choiceMode: 'single',
     defaultChoices: ['onepage'],
     name: 'Presentación institucional',
     summary:
-      'Un único plan para profesionales, estudios, portfolios, negocios e instituciones. La información puede organizarse en una página con secciones o en hasta cuatro páginas, con el mismo precio base.',
+      'Una página institucional con hasta cinco secciones para presentar el trabajo, el equipo y las formas de contacto.',
     inclusionLabel: 'Qué incluye de base',
     inclusions: [
       {
@@ -403,9 +412,9 @@ export const plans: Plan[] = [
           'Adaptación de la base visual con tu logo, colores y material.',
       },
       {
-        title: 'Una página con hasta 5 secciones o hasta 4 páginas',
+        title: 'Una página con hasta 5 secciones',
         description:
-          'Una página con hasta cinco secciones o hasta cuatro páginas separadas. La estructura se acuerda según el contenido, dentro de un mismo plan y precio base.',
+          'Organizamos hasta cinco secciones en una sola página. Cada página o sección adicional se suma como extra.',
       },
       {
         title: 'Textos e imágenes organizados',
@@ -429,59 +438,17 @@ export const plans: Plan[] = [
     ],
     boundaryLabel: 'Se solicita aparte',
     boundary:
-      'Contenido por encima del alcance, páginas adicionales, redacción, galerías, formularios y panel para editar información. Pedidos, reservas y pagos se definen en las soluciones correspondientes.',
+      'Las páginas y secciones adicionales se cobran por separado. Redacción, galerías y formularios se cotizan aparte. Pedidos y reservas requieren otro alcance.',
     material: [
-      'Logo e identidad visual.',
+      'Logo e imágenes existentes.',
       'Textos de cada página y servicios.',
       'Equipo, imágenes y datos de contacto si corresponde.',
     ],
     price: {
-      status: 'pending',
+      status: 'defined',
+      amount: 180000,
     },
-    extras: [
-      {
-        id: 'page',
-        name: 'Página adicional',
-        description:
-          'Contenido adicional fuera de las cuatro páginas de la base.',
-        price: {
-          status: 'pending',
-        },
-      },
-      {
-        id: 'gallery',
-        name: 'Galería de trabajos o fotos',
-        description: 'Hasta 12 imágenes provistas por el cliente.',
-        price: {
-          status: 'pending',
-        },
-      },
-      {
-        id: 'copy',
-        name: 'Ayuda con la redacción',
-        description: 'A partir de la información real de tu negocio.',
-        price: {
-          status: 'pending',
-        },
-      },
-      {
-        id: 'contactform',
-        name: 'Formulario de consultas',
-        description: 'Con los campos y el correo de recepción acordados.',
-        price: {
-          status: 'pending',
-        },
-      },
-      {
-        id: 'panel',
-        name: 'Panel para actualizar contenido',
-        description:
-          'Editar textos e imágenes en las páginas y espacios definidos.',
-        price: {
-          status: 'pending',
-        },
-      },
-    ],
+    extras: [...commonExtras, ...panelExtras()],
   },
   {
     id: 'medida',
@@ -546,7 +513,6 @@ export const plans: Plan[] = [
 
 export function formatPrice(price: Price): string {
   if (price.status === 'quote') return planContent.quotePrice
-  if (price.status === 'pending') return planContent.pendingPrice
   return new Intl.NumberFormat('es-AR', {
     style: 'currency',
     currency: 'ARS',
@@ -557,8 +523,6 @@ export function formatPrice(price: Price): string {
 export function totalPrice(prices: Price[]): Price {
   if (prices.some((price) => price.status === 'quote'))
     return { status: 'quote' }
-  if (prices.some((price) => price.status === 'pending'))
-    return { status: 'pending' }
   return {
     status: 'defined',
     amount: prices.reduce(
@@ -566,4 +530,54 @@ export function totalPrice(prices: Price[]): Price {
       0,
     ),
   }
+}
+
+export function calculateBudget(
+  plan: Plan,
+  selectedExtraIds: string[],
+  discount = 0,
+) {
+  const extras = plan.extras.filter((extra) =>
+    selectedExtraIds.includes(extra.id),
+  )
+  const subtotal = totalPrice([
+    plan.price,
+    ...extras.map((extra) => extra.price),
+  ])
+  if (subtotal.status !== 'defined') return null
+  const appliedDiscount = Math.min(
+    Math.max(0, Math.round(discount)),
+    subtotal.amount,
+  )
+  const total = subtotal.amount - appliedDiscount
+  return {
+    subtotal: subtotal.amount,
+    discount: appliedDiscount,
+    total,
+    deposit: Math.ceil(total / 2),
+  }
+}
+
+// Agregar aquí los códigos cuando LinusTec los defina. Los importes son públicos.
+export const coupons: {
+  code: string
+  type: 'percent' | 'fixed'
+  value: number
+}[] = []
+
+export function calculateBudgetWithCoupon(
+  plan: Plan,
+  selectedExtraIds: string[],
+  couponCode?: string,
+) {
+  const base = calculateBudget(plan, selectedExtraIds)
+  if (!base || !couponCode) return base
+  const coupon = coupons.find((item) => item.code === couponCode)
+  if (!coupon || !Number.isInteger(coupon.value) || coupon.value <= 0)
+    return null
+  const discount =
+    coupon.type === 'percent'
+      ? Math.round((base.subtotal * Math.min(coupon.value, 100)) / 100)
+      : coupon.value
+  return calculateBudget(plan, selectedExtraIds, discount)
 }

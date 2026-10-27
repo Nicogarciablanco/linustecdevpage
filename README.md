@@ -16,6 +16,8 @@ pnpm dev
 
 Vite muestra la URL local. El configurador usa un endpoint de servidor para correo, Turnstile y límite compartido. Sin configurar los servicios el envío permanece deshabilitado; no hay un éxito simulado. Ver [activación y variables de entorno](docs/CONSULTATIONS.md).
 
+El presupuesto, la seña del 50 % y los cupones se calculan en el navegador con los datos de `src/data/plans.ts`; no necesitan la API local. Para probar el envío real del formulario en desarrollo, ejecutá también `pnpm dev:api` y configurá los servicios indicados en la guía.
+
 ## Scripts
 
 | Comando           | Uso                                  |
@@ -43,4 +45,4 @@ Las tipografías Barlow Condensed y Google Sans se cargan desde Google Fonts com
 
 ## Edición de Planes
 
-`src/data/plans.ts` es la fuente de contenido de esta sección y su configurador. Editá `plans` para cambiar inclusiones, límites, materiales que se pedirán después, opciones, extras y precios por producto; `planContent` para los textos compartidos, el proceso, las etiquetas del formulario y las condiciones comerciales. Un precio pendiente usa `{ status: 'pending' }`; uno definitivo, `{ status: 'defined', amount: 123456 }`. A medida conserva `{ status: 'quote' }`. Las tarjetas muestran la base completa y ofrecen «Comprar base» o «Personalizar plan»; A medida abre una consulta de proyecto. La primera consulta pide datos de contacto y alcance, sin archivos ni enlaces de materiales. Después de la acreditación manual de la seña se solicitarán materiales mediante Google Form. Resend envía un correo de texto y la interfaz confirma éxito únicamente cuando el proveedor lo acepta. La configuración del envío se explica en `docs/CONSULTATIONS.md` y `.env.example`.
+`src/data/plans.ts` es la fuente de contenido comercial: `plans` reúne alcances, límites, opciones, extras y precios; `coupons` contiene los códigos que LinusTec decida publicar; `planContent` reúne textos compartidos, alias, proceso y formulario. Los tres planes con precio ofrecen solo «Comprar ahora», con una oportunidad de sumar extras dentro del configurador; cada uno tiene su detalle en `/planes/:id`. A medida sigue «A cotizar». El configurador calcula total y seña del 50 % localmente; el servidor repite la cuenta antes de enviar. Para los planes con precio se solicita un comprobante PDF, PNG o JPG de hasta 2 MB. Resend recibe un correo de texto con ese adjunto; la aceptación del proveedor no acredita el pago, que LinusTec verificará manualmente. Los materiales se solicitan luego mediante Google Form. La configuración del envío se explica en `docs/CONSULTATIONS.md` y `.env.example`.

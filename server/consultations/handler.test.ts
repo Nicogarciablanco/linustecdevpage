@@ -3,10 +3,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { handleConsultation } from './handler.ts'
 import type { ConsultationEnv } from './services.ts'
 import { consultationPolicy } from '../../src/data/consultationPolicy.ts'
+import { coupons } from '../../src/data/plans.ts'
 import worker from '../worker.ts'
 import { onRequest } from '../../functions/api/consultations.ts'
 
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  vi.unstubAllGlobals()
+  coupons.splice(0)
+})
 
 const env: ConsultationEnv = {
   SITE_ORIGIN: 'https://linustec.example',
@@ -24,6 +28,7 @@ const payload = () => ({
   planId: 'gastronomico',
   selectedChoiceIds: ['retiro'],
   selectedExtraIds: ['tables'],
+  receipt: { mediaType: 'application/pdf', content: btoa('%PDF-1.4\n') },
   contact: {
     name: 'Nicolás Pérez',
     business: 'Café Sur',
@@ -92,6 +97,68 @@ function services(
 const ip = '192.0.2.1'
 
 describe('consultation server', () => {
+  it('validates configured coupons on submission and recalculates the receipt email', async () => {
+    coupons.push({ code: 'TEST10', type: 'percent', value: 10 })
+    const rejected = await handleConsultation(
+      request({ ...payload(), couponCode: 'UNKNOWN' }),
+      env,
+      ip,
+      services(),
+    )
+    expect(await rejected.json()).toEqual({ ok: false, code: 'invalid_coupon' })
+
+    const fetcher = services()
+    const manipulated = await handleConsultation(
+      request({
+        ...payload(),
+        selectedExtraIds: ['tableselection'],
+        couponCode: 'TEST10',
+        total: 1,
+      }),
+      env,
+      ip,
+      fetcher,
+    )
+    expect(manipulated.status).toBe(400)
+    const accepted = await handleConsultation(
+      request({
+        ...payload(),
+        selectedExtraIds: ['tableselection'],
+        couponCode: 'TEST10',
+      }),
+      env,
+      ip,
+      fetcher,
+    )
+    expect(accepted.status).toBe(200)
+    const mail = JSON.parse(
+      fetcher.mock.calls.find(([url]) => String(url).includes('resend'))![1]!
+        .body as string,
+    )
+    expect(mail.text).toContain('TEST10')
+    expect(mail.text).toContain('432.000')
+    expect(mail.text).toContain('216.000')
+  })
+  it('rejects missing, forged and oversized receipts before verification', async () => {
+    for (const receipt of [
+      undefined,
+      { mediaType: 'image/png', content: btoa('%PDF-1.4\n') },
+      { mediaType: 'application/pdf', content: btoa('x'.repeat(2_097_153)) },
+    ]) {
+      const data = { ...payload(), receipt }
+      const response = await handleConsultation(
+        request(data),
+        env,
+        ip,
+        services(),
+      )
+      expect(response.status).toBe(400)
+      expect(await response.json()).toEqual({
+        ok: false,
+        code: 'invalid_receipt',
+      })
+    }
+  })
   it('fails closed without configuration or authenticated IP', async () => {
     const fetcher = services()
     expect((await handleConsultation(request(), {}, ip, fetcher)).status).toBe(
@@ -179,7 +246,6 @@ describe('consultation server', () => {
         email: 'nico@example.com\r\nBcc:other@example.com',
       },
     },
-    { contact: { ...payload().contact, message: '' } },
     { contact: { ...payload().contact, message: 'x'.repeat(6001) } },
     { materialUrl: 'https://files.example.com/shared' },
     { mailTo: 'attacker@example.com' },
@@ -310,10 +376,14 @@ describe('consultation server', () => {
     expect(sent.from).toBe(env.MAIL_FROM)
     expect(sent.reply_to).toBe(data.contact.email)
     expect(sent.text).toContain('Extras: Reservas de mesas')
-    expect(sent.text).toContain('Reservas de mesas: + AR$***')
+    expect(sent.text).toContain('Reservas de mesas: +')
+    expect(sent.text).toContain('380.000')
+    expect(sent.text).toContain('190.000')
     expect(sent.text).not.toContain('Enlace al material')
     expect(sent.html).toBeUndefined()
-    expect(sent.attachments).toBeUndefined()
+    expect(sent.attachments).toEqual([
+      { filename: 'comprobante.pdf', content: data.receipt.content },
+    ])
     const rateCommand = fetcher.mock.calls[0]![1]!.body as string
     expect(rateCommand).not.toContain(ip)
   })

@@ -1,9 +1,10 @@
 import { consultationPolicy } from '../../src/data/consultationPolicy.ts'
+import { calculateBudgetWithCoupon, plans } from '../../src/data/plans.ts'
 import type {
   ConsultationResponse,
   SubmissionErrorCode,
 } from '../../src/types/consultation.ts'
-import { validatePayload } from './validation.ts'
+import { validReceipt, validatePayload } from './validation.ts'
 import {
   checkDeliveryLimit,
   checkRateLimit,
@@ -35,7 +36,10 @@ function failure(
   return json({ ok: false, code }, status, extra)
 }
 
-async function boundedJson(request: Request): Promise<unknown> {
+export async function boundedJson(
+  request: Request,
+  maxBytes: number = consultationPolicy.maxBodyBytes,
+): Promise<unknown> {
   const reader = request.body?.getReader()
   if (!reader) throw new Error('Invalid body')
   const chunks: Uint8Array[] = []
@@ -45,7 +49,7 @@ async function boundedJson(request: Request): Promise<unknown> {
       const { done, value } = await reader.read()
       if (done) break
       total += value.byteLength
-      if (total > consultationPolicy.maxBodyBytes) {
+      if (total > maxBytes) {
         await reader.cancel()
         throw new RangeError('Body too large')
       }
@@ -97,15 +101,40 @@ export async function handleConsultation(
     return failure('unavailable', 503)
   }
   let data
+  let raw: unknown
   try {
-    data = validatePayload(await boundedJson(request))
+    raw = await boundedJson(request)
+    data = validatePayload(raw)
   } catch (error) {
     return failure(
       error instanceof RangeError ? 'too_large' : 'invalid_data',
       error instanceof RangeError ? 413 : 400,
     )
   }
-  if (!data) return failure('invalid_data', 400)
+  if (!data) {
+    if (
+      raw &&
+      typeof raw === 'object' &&
+      !Array.isArray(raw) &&
+      'planId' in raw &&
+      raw.planId !== 'medida' &&
+      plans.some((plan) => plan.id === raw.planId) &&
+      (!('receipt' in raw) || !validReceipt(raw.receipt))
+    )
+      return failure('invalid_receipt', 400)
+    return failure('invalid_data', 400)
+  }
+  if (data.planId !== 'medida') {
+    try {
+      const plan = plans.find((item) => item.id === data.planId)!
+      if (
+        !calculateBudgetWithCoupon(plan, data.selectedExtraIds, data.couponCode)
+      )
+        return failure('invalid_coupon', 400)
+    } catch {
+      return failure('unavailable', 503)
+    }
+  }
   try {
     if (!(await verifyTurnstile(config, data.turnstileToken, ip, fetcher)))
       return failure('invalid_token', 400)

@@ -1,6 +1,7 @@
 export const consultationPolicy = {
   action: 'plan-inquiry',
-  maxBodyBytes: 32_768,
+  maxBodyBytes: 3_000_000,
+  maxReceiptBytes: 2_097_152,
   maxLengths: {
     name: 100,
     business: 200,

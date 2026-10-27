@@ -26,7 +26,7 @@ function text(value: unknown, max: number, multiline = false): value is string {
   )
 }
 
-function contact(value: unknown): value is RequestContact {
+function contact(value: unknown, custom: boolean): value is RequestContact {
   if (
     !record(value) ||
     !onlyKeys(value, [
@@ -41,7 +41,9 @@ function contact(value: unknown): value is RequestContact {
     return false
   if (
     !Object.entries(policy.maxLengths).every(([key, max]) =>
-      text(value[key], max, key === 'message'),
+      (key === 'business' || key === 'message') && !custom
+        ? value[key] === '' || text(value[key], max, key === 'message')
+        : text(value[key], max, key === 'message'),
     )
   )
     return false
@@ -63,6 +65,38 @@ function ids(value: unknown, allowed: string[]): value is string[] {
   )
 }
 
+export function validReceipt(
+  value: unknown,
+): value is NonNullable<ConsultationPayload['receipt']> {
+  if (
+    !record(value) ||
+    !onlyKeys(value, ['mediaType', 'content']) ||
+    !['application/pdf', 'image/png', 'image/jpeg'].includes(
+      String(value.mediaType),
+    ) ||
+    typeof value.content !== 'string' ||
+    value.content.length < 8 ||
+    value.content.length > 4 * Math.ceil(policy.maxReceiptBytes / 3) ||
+    !/^[A-Za-z0-9+/]+={0,2}$/.test(value.content)
+  )
+    return false
+  try {
+    const bytes = atob(value.content)
+    if (
+      !bytes.length ||
+      bytes.length > policy.maxReceiptBytes ||
+      btoa(bytes) !== value.content
+    )
+      return false
+    if (value.mediaType === 'application/pdf') return bytes.startsWith('%PDF-')
+    if (value.mediaType === 'image/png')
+      return bytes.startsWith('\x89PNG\r\n\x1a\n')
+    return bytes.startsWith('\xff\xd8\xff')
+  } catch {
+    return false
+  }
+}
+
 export function validatePayload(value: unknown): ConsultationPayload | null {
   if (
     !record(value) ||
@@ -72,6 +106,8 @@ export function validatePayload(value: unknown): ConsultationPayload | null {
       'selectedChoiceIds',
       'selectedExtraIds',
       'contact',
+      'couponCode',
+      'receipt',
       'turnstileToken',
     ])
   )
@@ -86,7 +122,7 @@ export function validatePayload(value: unknown): ConsultationPayload | null {
   const plan = plans.find((item) => item.id === value.planId)
   if (
     !plan ||
-    !contact(value.contact) ||
+    !contact(value.contact, plan.id === 'medida') ||
     !ids(
       value.selectedChoiceIds,
       plan.choices.map((item) => item.id),
@@ -99,6 +135,25 @@ export function validatePayload(value: unknown): ConsultationPayload | null {
     return null
   if (plan.choiceMode === 'single' && value.selectedChoiceIds.length !== 1)
     return null
+  const selectedExtras = plan.extras.filter((extra) =>
+    (value.selectedExtraIds as string[]).includes(extra.id),
+  )
+  if (selectedExtras.some((extra) => extra.price.status !== 'defined'))
+    return null
+  const groups = selectedExtras.map((extra) => extra.group).filter(Boolean)
+  if (new Set(groups).size !== groups.length) return null
+  if (plan.id === 'medida') {
+    if (value.receipt !== undefined || value.couponCode !== undefined)
+      return null
+  } else {
+    if (!validReceipt(value.receipt)) return null
+    if (
+      value.couponCode !== undefined &&
+      (typeof value.couponCode !== 'string' ||
+        !/^[A-Z0-9_-]{1,32}$/.test(value.couponCode))
+    )
+      return null
+  }
   if (!text(value.turnstileToken, 2048)) return null
   return {
     requestId: value.requestId,
@@ -113,6 +168,14 @@ export function validatePayload(value: unknown): ConsultationPayload | null {
       phone: value.contact.phone.trim(),
       message: value.contact.message.trim(),
     },
+    ...(plan.id === 'medida'
+      ? {}
+      : {
+          receipt: value.receipt as NonNullable<ConsultationPayload['receipt']>,
+          ...(value.couponCode
+            ? { couponCode: value.couponCode as string }
+            : {}),
+        }),
     turnstileToken: value.turnstileToken,
   }
 }

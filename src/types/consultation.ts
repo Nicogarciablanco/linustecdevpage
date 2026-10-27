@@ -6,12 +6,19 @@ export interface ConsultationPayload {
   selectedChoiceIds: string[]
   selectedExtraIds: string[]
   contact: RequestContact
+  couponCode?: string
+  receipt?: {
+    mediaType: 'application/pdf' | 'image/png' | 'image/jpeg'
+    content: string
+  }
   turnstileToken: string
 }
 
 export type SubmissionErrorCode =
   | 'unavailable'
   | 'invalid_data'
+  | 'invalid_coupon'
+  | 'invalid_receipt'
   | 'invalid_token'
   | 'too_large'
   | 'rate_limited'

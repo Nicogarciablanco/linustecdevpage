@@ -21,7 +21,7 @@ createServer(async (incoming, outgoing) => {
       init.body = Readable.toWeb(incoming) as ReadableStream<Uint8Array>
       init.duplex = 'half'
     }
-    const request = new Request('http://127.0.0.1:8788/api/consultations', init)
+    const request = new Request(`http://127.0.0.1:8788${incoming.url}`, init)
     const response = await handleConsultation(
       request,
       process.env,

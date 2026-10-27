@@ -133,7 +133,7 @@ it('waits for delayed api.js and retries initial load and discarded widgets', as
     'first-token',
   )
   expect(screen.getByRole('status')).toHaveTextContent(
-    planContent.submission.success,
+    planContent.submission.customSuccess,
   )
   cleanup()
   openReview()
@@ -204,6 +204,6 @@ it('waits for delayed api.js and retries initial load and discarded widgets', as
     'current-token',
   )
   expect(screen.getByRole('status')).toHaveTextContent(
-    planContent.submission.success,
+    planContent.submission.customSuccess,
   )
 })

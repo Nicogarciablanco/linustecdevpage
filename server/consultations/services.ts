@@ -1,9 +1,9 @@
 import { consultationPolicy } from '../../src/data/consultationPolicy.ts'
 import {
+  calculateBudgetWithCoupon,
   formatPrice,
   plans,
   planContent,
-  totalPrice,
 } from '../../src/data/plans.ts'
 import type { ConsultationPayload } from '../../src/types/consultation.ts'
 
@@ -222,6 +222,11 @@ export function emailText(data: ConsultationPayload): string {
   const extras = plan.extras.filter((item) =>
     data.selectedExtraIds.includes(item.id),
   )
+  const budget = calculateBudgetWithCoupon(
+    plan,
+    data.selectedExtraIds,
+    data.couponCode,
+  )
   return [
     `Consulta LinusTec — ${plan.name}`,
     `Referencia: ${data.requestId}`,
@@ -229,18 +234,39 @@ export function emailText(data: ConsultationPayload): string {
     ...choices.map((choice) => `${choice.name}: ${planContent.included}`),
     `${planContent.extrasLabel}: ${extras.length ? extras.map((extra) => extra.name).join(', ') : planContent.noExtras}`,
     ...extras.map((extra) => `${extra.name}: + ${formatPrice(extra.price)}`),
-    `${planContent.totalLabel}: ${formatPrice(totalPrice([plan.price, ...extras.map((extra) => extra.price)]))}`,
+    ...(budget
+      ? [
+          `${planContent.subtotalLabel}: ${formatPrice({ status: 'defined', amount: budget.subtotal })}`,
+          ...(data.couponCode
+            ? [
+                `Cupón: ${data.couponCode}`,
+                `${planContent.discountLabel}: -${formatPrice({ status: 'defined', amount: budget.discount })}`,
+              ]
+            : []),
+          `${planContent.totalLabel}: ${formatPrice({ status: 'defined', amount: budget.total })}`,
+          `${planContent.depositLabel}: ${formatPrice({ status: 'defined', amount: budget.deposit })}`,
+          `Comprobante adjunto: ${data.receipt ? 'sí' : 'no'}`,
+          planContent.paymentReviewStatus,
+        ]
+      : [`${planContent.totalLabel}: ${planContent.quotePrice}`]),
     '',
     `${planContent.form.name.label}: ${data.contact.name}`,
-    `${planContent.form.business.label}: ${data.contact.business}`,
+    ...(plan.id === 'medida'
+      ? [`${planContent.form.business.label}: ${data.contact.business}`]
+      : []),
     `${planContent.form.email.label}: ${data.contact.email}`,
     `${planContent.form.phone.label}: ${data.contact.phone}`,
-    `${planContent.form.domainLabel}: ${planContent.domainOptions.find((option) => option.value === data.contact.domain)!.label}`,
+    ...(plan.id === 'medida'
+      ? [
+          `${planContent.form.domainLabel}: ${planContent.domainOptions.find((option) => option.value === data.contact.domain)!.label}`,
+        ]
+      : []),
     '',
-    data.contact.message,
+    ...(data.contact.message ? [data.contact.message] : []),
     '',
     `${plan.boundaryLabel}: ${plan.boundary}`,
     planContent.startCondition,
+    planContent.materialsAfterPayment,
   ].join('\n')
 }
 
@@ -255,6 +281,21 @@ export async function sendMail(
     reply_to: data.contact.email,
     subject: `Consulta LinusTec: ${plans.find((plan) => plan.id === data.planId)!.label}`,
     text: emailText(data),
+    ...(data.receipt
+      ? {
+          attachments: [
+            {
+              filename:
+                data.receipt.mediaType === 'application/pdf'
+                  ? 'comprobante.pdf'
+                  : data.receipt.mediaType === 'image/png'
+                    ? 'comprobante.png'
+                    : 'comprobante.jpg',
+              content: data.receipt.content,
+            },
+          ],
+        }
+      : {}),
   }
   // Retries with the same request and content reuse Resend's 24-hour idempotency key.
   const idempotencyKey = `linustec-${await digest(JSON.stringify({ requestId: data.requestId, payload }))}`

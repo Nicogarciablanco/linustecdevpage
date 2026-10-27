@@ -7,14 +7,21 @@ import { useStickyHeader } from '../hooks/useStickyHeader'
 import { Hero } from '../sections/Hero/Hero'
 import { Projects } from '../sections/Projects/Projects'
 import { Plans } from '../sections/Plans/Plans'
+import { PlanDetailPage } from '../sections/Plans/PlanDetailPage'
 import { Contact } from '../sections/Contact/Contact'
 import type { PlanId } from '../types/plan'
 
 export function App() {
+  const detailPlan = plans.find(
+    (plan) => window.location.pathname === `/planes/${plan.id}`,
+  )
+  return detailPlan ? <PlanDetailPage plan={detailPlan} /> : <Home />
+}
+
+function Home() {
   const [trigger, setTrigger] = useState<HTMLDivElement | null>(null)
   const sticky = useStickyHeader(trigger)
   const [selectedId, setSelectedId] = useState<PlanId | null>(null)
-  const [entry, setEntry] = useState<'base' | 'customize'>('customize')
   const [opener, setOpener] = useState<HTMLButtonElement | null>(null)
   const selectedPlan = plans.find((plan) => plan.id === selectedId)
 
@@ -27,9 +34,8 @@ export function App() {
         <Projects />
         <Plans
           selectedId={selectedId}
-          onSelect={(id, button, nextEntry) => {
+          onSelect={(id, button) => {
             setOpener(button)
-            setEntry(nextEntry)
             setSelectedId(id)
           }}
         />
@@ -40,7 +46,6 @@ export function App() {
         <PlanConfigurator
           key={selectedPlan.id}
           plan={selectedPlan}
-          entry={entry}
           opener={opener}
           onClose={() => setSelectedId(null)}
         />

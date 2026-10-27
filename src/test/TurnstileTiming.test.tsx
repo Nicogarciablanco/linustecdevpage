@@ -50,7 +50,9 @@ it('loads Turnstile at review and retries a widget error without reloading api.j
     configurable: true,
     value: vi.fn(),
   })
-  const fetcher = vi.fn()
+  const fetcher = vi.fn(async (url: string) => {
+    throw new Error(`No real consultation expected: ${url}`)
+  })
   vi.stubGlobal('fetch', fetcher)
   let widgetOptions: Record<string, unknown> = {}
   let widgetCount = 0
@@ -84,23 +86,36 @@ it('loads Turnstile at review and retries a widget error without reloading api.j
   expect(insertedScripts()).toHaveLength(0)
   expect(currentScript()).toBeNull()
 
-  fireEvent.click(
-    screen.getAllByRole('button', { name: 'Personalizar plan' })[0]!,
-  )
+  fireEvent.click(screen.getAllByRole('button', { name: 'Comprar ahora' })[0]!)
   expect(screen.getByRole('dialog')).toBeInTheDocument()
   expect(insertedScripts()).toHaveLength(0)
-  fireEvent.click(screen.getByRole('button', { name: 'Completar solicitud' }))
-  expect(screen.getByLabelText('Tu nombre')).toBeInTheDocument()
+  expect(screen.queryByLabelText('Tu nombre')).not.toBeInTheDocument()
   expect(insertedScripts()).toHaveLength(0)
+  fireEvent.click(screen.getByRole('button', { name: 'Seguir sin extras' }))
+  expect(insertedScripts()).toHaveLength(0)
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', { name: 'Completar solicitud' }),
+    ).toBeEnabled(),
+  )
+  fireEvent.click(screen.getByRole('button', { name: 'Completar solicitud' }))
 
   for (const [label, value] of [
     ['Tu nombre', 'Nicolás Pérez'],
-    ['Negocio o actividad', 'Estudio Sur'],
     ['Correo electrónico', 'nico@example.com'],
     ['WhatsApp', '11 5555 4444'],
-    ['¿Qué necesitás?', 'Carta y pedidos'],
   ] as const)
     fireEvent.change(screen.getByLabelText(label), { target: { value } })
+  fireEvent.change(screen.getByLabelText('Comprobante de la transferencia'), {
+    target: {
+      files: [
+        new File(['%PDF-1.4\n'], 'comprobante.pdf', {
+          type: 'application/pdf',
+        }),
+      ],
+    },
+  })
+  expect(insertedScripts()).toHaveLength(0)
   fireEvent.click(screen.getByRole('button', { name: 'Ver resumen' }))
   expect(insertedScripts()).toHaveLength(1)
   const script = currentScript()!
@@ -118,11 +133,15 @@ it('loads Turnstile at review and retries a widget error without reloading api.j
   await act(async () => {
     ;(widgetOptions.callback as (token: string) => void)('first-token')
   })
-  expect(screen.getByRole('button', { name: 'Enviar consulta' })).toBeEnabled()
+  expect(
+    screen.getByRole('button', { name: 'Enviar solicitud y comprobante' }),
+  ).toBeEnabled()
   await act(async () => {
     ;(widgetOptions['error-callback'] as (code: string) => void)('600010')
   })
-  expect(screen.getByRole('button', { name: 'Enviar consulta' })).toBeDisabled()
+  expect(
+    screen.getByRole('button', { name: 'Enviar solicitud y comprobante' }),
+  ).toBeDisabled()
   expect(resetWidget).not.toHaveBeenCalled()
   expect(warnings).toHaveBeenCalledWith('Turnstile error:', '600010')
   expect(JSON.stringify(warnings.mock.calls)).not.toContain('first-token')
@@ -141,13 +160,19 @@ it('loads Turnstile at review and retries a widget error without reloading api.j
   await act(async () => {
     ;(widgetOptions.callback as (token: string) => void)('fresh-token')
   })
-  expect(screen.getByRole('button', { name: 'Enviar consulta' })).toBeEnabled()
-  expect(fetcher).not.toHaveBeenCalled()
+  expect(
+    screen.getByRole('button', { name: 'Enviar solicitud y comprobante' }),
+  ).toBeEnabled()
+  expect(fetcher.mock.calls.some(([url]) => url === '/api/consultations')).toBe(
+    false,
+  )
 
   fireEvent.click(screen.getByRole('button', { name: 'Volver' }))
   expect(screen.getByLabelText('Tu nombre')).toHaveValue('Nicolás Pérez')
   fireEvent.click(screen.getByRole('button', { name: 'Ver resumen' }))
   await waitFor(() => expect(renderWidget).toHaveBeenCalledTimes(3))
   expect(insertedScripts()).toHaveLength(1)
-  expect(fetcher).not.toHaveBeenCalled()
+  expect(fetcher.mock.calls.some(([url]) => url === '/api/consultations')).toBe(
+    false,
+  )
 })

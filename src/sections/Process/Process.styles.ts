@@ -6,7 +6,8 @@ export const ProcessBlock = styled.div`
 
 export const ProcessGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 28px;
   @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
     grid-template-columns: 1fr 1fr;
   }
@@ -17,10 +18,7 @@ export const ProcessGrid = styled.div`
 
 export const Step = styled.article`
   min-height: 210px;
-  padding: 28px 28px 20px 0;
-  &:not(:first-child) {
-    padding-left: 28px;
-  }
+  padding: 28px 0 20px;
   b {
     color: ${({ theme }) => theme.colors.tealText};
   }

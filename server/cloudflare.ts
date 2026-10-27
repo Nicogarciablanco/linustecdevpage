@@ -2,10 +2,7 @@ import { handleConsultation } from './consultations/handler.ts'
 import type { ConsultationEnv } from './consultations/services.ts'
 
 // Call only from Pages/Workers: Cloudflare supplies this header at its edge.
-export function handleCloudflareConsultation(
-  request: Request,
-  env: ConsultationEnv,
-) {
+function cloudflareIp(request: Request) {
   const value = request.headers.get('CF-Connecting-IP')
   let ip: string | null = null
   if (value && /^[a-f\d:.]{3,64}$/i.test(value)) {
@@ -24,5 +21,12 @@ export function handleCloudflareConsultation(
         ip = parts.map(Number).join('.')
     }
   }
-  return handleConsultation(request, env, ip)
+  return ip
+}
+
+export function handleCloudflareConsultation(
+  request: Request,
+  env: ConsultationEnv,
+) {
+  return handleConsultation(request, env, cloudflareIp(request))
 }

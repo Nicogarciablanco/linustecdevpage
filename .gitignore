@@ -8,3 +8,4 @@ playwright-report/
 .dev.vars*
 .wrangler/
 apiresendkey.md
+.codex/

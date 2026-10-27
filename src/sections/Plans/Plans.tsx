@@ -1,6 +1,3 @@
-import { ArrowUpRight } from '@carbon/icons-react'
-import { useEffect, useRef } from 'react'
-import type { PointerEvent } from 'react'
 import {
   Container,
   DisplayHeading,
@@ -11,82 +8,24 @@ import { planContent, plans } from '../../data/plans'
 import type { PlanId } from '../../types/plan'
 import { Process } from '../Process/Process'
 import { PlanCard } from './PlanCard'
-import { PlanCursor, PlanGrid, PlansSection } from './Plans.styles'
+import { PlanGrid, PlansSection } from './Plans.styles'
 
 export function Plans({
   onSelect,
   selectedId,
 }: {
-  onSelect: (
-    id: PlanId,
-    button: HTMLButtonElement,
-    entry: 'base' | 'customize',
-  ) => void
+  onSelect: (id: PlanId, button: HTMLButtonElement) => void
   selectedId: PlanId | null
 }) {
-  const cursorRef = useRef<HTMLDivElement>(null)
-  const cursorFrame = useRef<number | null>(null)
-  const cursorPosition = useRef({ x: 0, y: 0 })
-  const activeCard = useRef<HTMLElement | null>(null)
-
-  useEffect(
-    () => () => {
-      if (cursorFrame.current !== null)
-        window.cancelAnimationFrame(cursorFrame.current)
-    },
-    [],
-  )
-
-  function hideCursor() {
-    if (cursorFrame.current !== null) {
-      window.cancelAnimationFrame(cursorFrame.current)
-      cursorFrame.current = null
-    }
-    if (activeCard.current) {
-      activeCard.current.dataset.cursorActive = 'false'
-      activeCard.current = null
-    }
-    if (cursorRef.current) cursorRef.current.dataset.visible = 'false'
-  }
-
-  function moveCursor(event: PointerEvent<HTMLElement>) {
-    if (activeCard.current !== event.currentTarget) return
-    cursorPosition.current.x = event.clientX
-    cursorPosition.current.y = event.clientY
-    if (cursorFrame.current !== null) return
-    cursorFrame.current = -1
-    const frame = window.requestAnimationFrame(() => {
-      cursorFrame.current = null
-      const cursor = cursorRef.current
-      if (!cursor) return
-      const { x, y } = cursorPosition.current
-      cursor.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%)`
-      cursor.dataset.visible = 'true'
-    })
-    if (cursorFrame.current !== null) cursorFrame.current = frame
-  }
-
-  function showCursor(event: PointerEvent<HTMLElement>) {
-    if (
-      event.pointerType !== 'mouse' ||
-      window.matchMedia('(pointer: coarse), (prefers-reduced-motion: reduce)')
-        .matches
-    ) {
-      hideCursor()
-      return
-    }
-    activeCard.current = event.currentTarget
-    activeCard.current.dataset.cursorActive = 'true'
-    moveCursor(event)
-  }
-
   return (
     <PlansSection id="planes">
       <Container>
         <SectionHead>
           <div>
             <DisplayHeading>
-              {planContent.heading}{' '}
+              {planContent.heading}
+              <br />
+              {planContent.headingSecondLine}{' '}
               <span className="accent">{planContent.headingAccent}</span>
             </DisplayHeading>
             <SectionCopy>{planContent.introduction}</SectionCopy>
@@ -98,21 +37,11 @@ export function Plans({
               key={plan.id}
               plan={plan}
               selected={selectedId === plan.id}
-              onPointerEnter={showCursor}
-              onPointerMove={moveCursor}
-              onPointerLeave={hideCursor}
-              onPointerCancel={hideCursor}
-              onSelect={(button, entry) => {
-                hideCursor()
-                onSelect(plan.id, button, entry)
-              }}
+              onSelect={(button) => onSelect(plan.id, button)}
             />
           ))}
         </PlanGrid>
         <Process />
-        <PlanCursor ref={cursorRef} aria-hidden="true" data-visible="false">
-          <ArrowUpRight size={24} aria-hidden="true" />
-        </PlanCursor>
       </Container>
     </PlansSection>
   )

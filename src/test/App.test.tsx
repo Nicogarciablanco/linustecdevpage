@@ -13,10 +13,9 @@ import { Profiler } from 'react'
 import { App } from '../app/App'
 import { GlobalStyles } from '../app/styles/GlobalStyles'
 import { theme } from '../app/styles/theme'
-import { planContent } from '../data/plans'
+import { coupons, planContent, plans } from '../data/plans'
 import { projects } from '../data/projects'
 import { ProjectRail } from '../features/project-rail/ProjectRail'
-import { Plans } from '../sections/Plans/Plans'
 
 let observerCallback: IntersectionObserverCallback
 let observerOptions: IntersectionObserverInit | undefined
@@ -75,12 +74,19 @@ beforeEach(() => {
       this.removeAttribute('open')
     },
   })
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => {
+      throw new Error('No consultation request expected')
+    }),
+  )
 })
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
   scrollBy.mockClear()
   scrollTo.mockClear()
+  coupons.splice(0)
 })
 
 function setup() {
@@ -93,8 +99,12 @@ function setup() {
 }
 function openPlan(index: number) {
   fireEvent.click(
-    screen.getAllByRole('button', { name: 'Personalizar plan' })[index]!,
+    screen.getAllByRole('button', { name: 'Comprar ahora' })[index]!,
   )
+}
+function openPlanOptions(index: number) {
+  openPlan(index)
+  fireEvent.click(screen.getByRole('button', { name: 'Agregar extras' }))
 }
 
 describe('landing', () => {
@@ -467,267 +477,278 @@ describe('landing', () => {
       expect.objectContaining({ behavior: 'instant' }),
     )
   })
-  it('keeps plan cards neutral and moves their cursor without React renders', () => {
-    const frames: FrameRequestCallback[] = []
-    const cancel = vi.fn()
-    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
-      frames.push(callback)
-      return frames.length
-    })
-    vi.stubGlobal('cancelAnimationFrame', cancel)
-    let renders = 0
-    render(
-      <ThemeProvider theme={theme}>
-        <Profiler id="plans" onRender={() => renders++}>
-          <Plans selectedId={null} onSelect={vi.fn()} />
-        </Profiler>
-      </ThemeProvider>,
-    )
+  it('shows four comparable plans, their detail pages and neutral card cursors', () => {
+    setup()
     const cards = [
       ...document.querySelectorAll<HTMLElement>(
-        '#planes article[aria-labelledby^="plan-title-"]',
+        '#planes article[aria-labelledby="plan-title-gastronomico"], #planes article[aria-labelledby="plan-title-servicios"], #planes article[aria-labelledby="plan-title-institucional"], #planes article[aria-labelledby="plan-title-medida"]',
       ),
     ]
-    const cursor = document.querySelector<HTMLElement>(
-      '#planes [data-visible]',
-    )!
     expect(cards).toHaveLength(4)
     expect(
-      new Set(cards.map((card) => getComputedStyle(card).borderColor)).size,
-    ).toBe(1)
-    const initialRenders = renders
-    fireEvent.pointerEnter(cards[0]!, {
-      pointerType: 'mouse',
-      clientX: 210,
-      clientY: 300,
-    })
-    fireEvent.pointerMove(cards[0]!, {
-      pointerType: 'mouse',
-      clientX: 240,
-      clientY: 320,
-    })
-    expect(frames).toHaveLength(1)
-    frames[0]!(0)
-    expect(cursor.style.transform).toBe(
-      'translate3d(240px, 320px, 0) translate(-50%, -50%)',
-    )
-    expect(cursor).toHaveAttribute('data-visible', 'true')
-    fireEvent.pointerMove(cards[0]!, {
-      pointerType: 'mouse',
-      clientX: 260,
-      clientY: 330,
-    })
-    expect(renders).toBe(initialRenders)
-    fireEvent.pointerLeave(cards[0]!)
-    expect(cancel).toHaveBeenCalledWith(2)
-    expect(cursor).toHaveAttribute('data-visible', 'false')
-    fireEvent.pointerEnter(cards[1]!, { pointerType: 'touch' })
-    expect(cursor).toHaveAttribute('data-visible', 'false')
-    vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: true }))
-    fireEvent.pointerEnter(cards[2]!, { pointerType: 'mouse' })
-    expect(cursor).toHaveAttribute('data-visible', 'false')
-  })
-  it.each([
-    [0, 'Plan gastronómico', 'Reservas de mesas'],
-    [1, 'Servicios y reservas', 'Panel para editar servicios y productos'],
-    [2, 'Presentación institucional', 'Galería de trabajos o fotos'],
-  ])('opens correct configurator for plan %i', (index, title, check) => {
-    setup()
-    openPlan(index)
-    const dialog = screen.getByRole('dialog')
+      cards.every((card) => getComputedStyle(card).cursor === 'default'),
+    ).toBe(true)
     expect(
-      within(dialog).getByRole('heading', { name: title }),
-    ).toBeInTheDocument()
-    expect(
-      within(dialog).getByRole('checkbox', { name: new RegExp(check) }),
-    ).toBeInTheDocument()
-  })
-  it('starts A medida with the idea form and no automatic extras', () => {
-    setup()
-    fireEvent.click(screen.getByRole('button', { name: 'Consultar proyecto' }))
-    const dialog = screen.getByRole('dialog')
-    expect(
-      within(dialog).getByRole('heading', { name: 'Proyecto a medida' }),
-    ).toBeInTheDocument()
-    expect(within(dialog).getByLabelText('¿Qué necesitás?')).toBeInTheDocument()
-    expect(
-      within(dialog).queryByText('Opciones de la solución base'),
-    ).not.toBeInTheDocument()
-  })
-  it('shows every base inclusion directly and keeps extras in the configurator', () => {
-    setup()
-    const cards = document.querySelectorAll(
-      '#planes article[aria-labelledby^="plan-title-"]',
-    )
-    expect(cards).toHaveLength(4)
-    expect(
-      document.querySelectorAll('#planes article .price strong'),
-    ).toHaveLength(4)
-    expect(screen.queryByText('Plan gastronómico')).not.toBeInTheDocument()
-    expect(screen.queryByText('Según el alcance')).not.toBeInTheDocument()
-    expect(cards[0]).toHaveTextContent(
-      'Menú: 2 categorías, hasta 8 subcategorías y 48 productos',
-    )
-    expect(cards[0]).not.toHaveTextContent('Reservas de mesas')
-    expect(
-      screen.getAllByRole('button', { name: 'Comprar base' }),
+      screen.getAllByRole('button', { name: 'Comprar ahora' }),
     ).toHaveLength(3)
     expect(
-      screen.queryByText(/Materiales después de confirmar el pago/),
+      screen.queryByRole('button', { name: 'Personalizar plan' }),
     ).not.toBeInTheDocument()
     expect(
-      screen.queryByText(/Los precios marcados AR\$\*\*\*/),
-    ).not.toBeInTheDocument()
-    expect(document.querySelector('#planes #proceso')).toContainElement(
-      screen.getByRole('heading', { name: /Claro desde el primer paso/i }),
-    )
-    expect(document.querySelectorAll('#planes #proceso article')).toHaveLength(
-      4,
-    )
+      screen.getAllByRole('link', { name: '¿Querés saber más?' }),
+    ).toHaveLength(4)
+    expect(plans.map((plan) => plan.price)).toEqual([
+      { status: 'defined', amount: 220000 },
+      { status: 'defined', amount: 300000 },
+      { status: 'defined', amount: 180000 },
+      { status: 'quote' },
+    ])
+    expect(cards[0]).toHaveTextContent('220.000')
+    expect(cards[1]).toHaveTextContent('300.000')
+    expect(cards[2]).toHaveTextContent('180.000')
+    expect(cards[3]).toHaveTextContent('A cotizar')
+    expect(
+      document.querySelector('#planes #proceso article'),
+    ).toBeInTheDocument()
   })
-  it('offers extras before reviewing a base without losing contact data', () => {
+  it.each(plans)('opens $label only from its action button', (plan) => {
     setup()
-    fireEvent.click(screen.getAllByRole('button', { name: 'Comprar base' })[0]!)
-    expect(screen.getByLabelText('Tu nombre')).toBeInTheDocument()
-    for (const [label, value] of [
-      ['Tu nombre', 'Nicolás Pérez'],
-      ['Negocio o actividad', 'Café Sur'],
-      ['Correo electrónico', 'nico@cafe.com'],
-      ['WhatsApp', '11 5555 4444'],
-      ['¿Qué necesitás?', 'Carta y pedidos'],
-    ] as const)
-      fireEvent.change(screen.getByLabelText(label), { target: { value } })
-    fireEvent.click(screen.getByRole('button', { name: 'Completar solicitud' }))
+    const card = screen.getByRole('article', { name: plan.headline })
+    fireEvent.click(card)
+    fireEvent.click(within(card).getByRole('heading', { name: plan.headline }))
+    fireEvent.click(within(card).getByText(plan.audience))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    fireEvent.click(
+      within(card).getByRole('button', {
+        name:
+          plan.id === 'medida'
+            ? planContent.customAction
+            : planContent.baseAction,
+      }),
+    )
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+  it('asks about extras before contact and shows the base total and deposit', async () => {
+    setup()
+    openPlan(0)
     expect(
       screen.getByRole('heading', { name: planContent.extrasPrompt }),
     ).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Agregar extras' }))
-    fireEvent.click(screen.getByRole('checkbox', { name: /Reservas de mesas/ }))
-    fireEvent.click(screen.getByRole('button', { name: 'Ver resumen' }))
-    expect(screen.getByText('Nicolás Pérez')).toBeInTheDocument()
-    expect(screen.getByText('Reservas de mesas')).toBeInTheDocument()
-  })
-  it('marks a base consultation without extras explicitly in the review', () => {
-    setup()
-    fireEvent.click(screen.getAllByRole('button', { name: 'Comprar base' })[0]!)
-    for (const [label, value] of [
-      ['Tu nombre', 'Nicolás Pérez'],
-      ['Negocio o actividad', 'Café Sur'],
-      ['Correo electrónico', 'nico@cafe.com'],
-      ['WhatsApp', '11 5555 4444'],
-      ['¿Qué necesitás?', 'Carta y pedidos'],
-    ] as const)
-      fireEvent.change(screen.getByLabelText(label), { target: { value } })
-    fireEvent.click(screen.getByRole('button', { name: 'Completar solicitud' }))
+    expect(screen.queryByLabelText('Tu nombre')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Seguir sin extras' }))
-    expect(screen.getByText('Sin extras')).toBeInTheDocument()
-  })
-  it('keeps selected extras and form data through review and back', () => {
-    setup()
-    openPlan(0)
-    const dialog = screen.getByRole('dialog')
-    fireEvent.click(
-      within(dialog).getByRole('checkbox', { name: /Reservas de mesas/ }),
+    expect(screen.getByLabelText('Tu selección')).toHaveTextContent('220.000')
+    expect(screen.getByLabelText('Tu selección')).toHaveTextContent('110.000')
+    expect(screen.getByLabelText('Tu selección')).toHaveTextContent(
+      planContent.depositNote,
     )
-    expect(within(dialog).getByLabelText('Tu selección')).toHaveTextContent(
-      'Reservas de mesas',
+    expect(screen.getByLabelText('Tu selección')).not.toHaveTextContent(
+      planContent.subtotalLabel,
     )
-    fireEvent.click(
-      within(dialog).getByRole('button', { name: 'Completar solicitud' }),
-    )
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Ver resumen' }))
-    expect(within(dialog).getByText('Ingresá tu nombre.')).toBeInTheDocument()
-    expect(within(dialog).getByLabelText('Tu nombre')).toHaveFocus()
-    fireEvent.change(within(dialog).getByLabelText('Tu nombre'), {
-      target: { value: 'Nicolás Pérez' },
-    })
-    fireEvent.change(within(dialog).getByLabelText('Negocio o actividad'), {
-      target: { value: 'Café Sur' },
-    })
-    fireEvent.change(within(dialog).getByLabelText('Correo electrónico'), {
-      target: { value: 'nico@cafe.com' },
-    })
-    fireEvent.change(within(dialog).getByLabelText('WhatsApp'), {
-      target: { value: '11 5555 4444' },
-    })
-    fireEvent.change(within(dialog).getByLabelText('¿Qué necesitás?'), {
-      target: { value: 'Carta y pedidos' },
-    })
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Ver resumen' }))
-    expect(within(dialog).getByText('Nicolás Pérez')).toBeInTheDocument()
-    expect(within(dialog).getByText('Reservas de mesas')).toBeInTheDocument()
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Volver' }))
-    expect(within(dialog).getByLabelText('Tu nombre')).toHaveValue(
-      'Nicolás Pérez',
-    )
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Volver' }))
+    expect(screen.getByText(planContent.paymentAlias)).toBeInTheDocument()
+    expect(fetch).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Completar solicitud' }))
+    expect(screen.getByLabelText('Tu nombre')).toBeInTheDocument()
     expect(
-      within(dialog).getByRole('checkbox', { name: /Reservas de mesas/ }),
-    ).toBeChecked()
-  })
-  it('resets plan-specific options when another plan opens', () => {
-    setup()
-    openPlan(0)
-    fireEvent.click(screen.getByRole('checkbox', { name: /Reservas de mesas/ }))
-    fireEvent.click(screen.getByRole('button', { name: 'Cerrar configurador' }))
-    openPlan(1)
+      screen.getByLabelText('Comprobante de la transferencia'),
+    ).toBeInTheDocument()
     expect(
-      screen.getByRole('checkbox', {
-        name: /Panel para editar servicios y productos/,
-      }),
-    ).not.toBeChecked()
-    expect(
-      screen.queryByRole('checkbox', { name: /Reservas de mesas/ }),
+      screen.queryByLabelText('Enlace al material'),
     ).not.toBeInTheDocument()
   })
-  it('keeps sending disabled when Turnstile is not configured', () => {
+  it('applies a configured coupon only after Aplicar, without API requests', () => {
+    coupons.push({ code: 'TEST10', type: 'percent', value: 10 })
+    setup()
+    openPlan(0)
+    fireEvent.click(screen.getByRole('button', { name: 'Seguir sin extras' }))
+    const fetcher = vi.mocked(fetch)
+    fireEvent.change(screen.getByLabelText('Cupón de descuento'), {
+      target: { value: 'TEST10' },
+    })
+    expect(screen.getByLabelText('Tu selección')).toHaveTextContent('110.000')
+    fireEvent.click(screen.getByRole('button', { name: 'Aplicar' }))
+    expect(screen.getByLabelText('Tu selección')).toHaveTextContent('198.000')
+    expect(screen.getByLabelText('Tu selección')).toHaveTextContent('99.000')
+    expect(fetcher).not.toHaveBeenCalled()
+  })
+  it('rejects an unknown coupon while keeping the base budget available', () => {
+    setup()
+    openPlan(0)
+    fireEvent.click(screen.getByRole('button', { name: 'Seguir sin extras' }))
+    fireEvent.change(screen.getByLabelText('Cupón de descuento'), {
+      target: { value: 'UNKNOWN' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Aplicar' }))
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      planContent.couponInvalid,
+    )
+    expect(screen.getByLabelText('Tu selección')).toHaveTextContent('110.000')
+    expect(
+      screen.getByRole('button', { name: 'Completar solicitud' }),
+    ).toBeEnabled()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+  it.each([
+    [0, 'Plan gastronómico', 'Reservas de mesas'],
+    [1, 'Servicios y reservas', 'Panel autoadministrable sin carga de fotos'],
+    [
+      2,
+      'Presentación institucional',
+      'Panel autoadministrable sin carga de fotos',
+    ],
+  ])('opens the correct options for plan %i', (index, title, extra) => {
+    setup()
+    openPlanOptions(index)
+    expect(screen.getByRole('dialog')).toHaveTextContent(title)
+    expect(
+      screen.getByRole('checkbox', { name: new RegExp(extra) }),
+    ).toBeInTheDocument()
+  })
+  it('replaces, rather than accumulates, exclusive table reservation variants', () => {
+    setup()
+    openPlanOptions(0)
+    const basic = screen.getByRole('checkbox', { name: /^Reservas de mesas/ })
+    const selected = screen.getByRole('checkbox', {
+      name: /Reservas con elección de mesa/,
+    })
+    fireEvent.click(basic)
+    expect(screen.getByLabelText('Tu selección')).toHaveTextContent('380.000')
+    fireEvent.click(selected)
+    expect(basic).not.toBeChecked()
+    expect(selected).toBeChecked()
+    expect(screen.getByLabelText('Tu selección')).toHaveTextContent('480.000')
+    expect(screen.getByLabelText('Tu selección')).toHaveTextContent('240.000')
+  })
+  it('only offers extras with a defined price', () => {
+    setup()
+    openPlanOptions(0)
+    expect(
+      screen.queryByText('Carga inicial adicional'),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByText('Galería de fotos')).not.toBeInTheDocument()
+    expect(
+      within(screen.getByRole('dialog')).queryByText('A cotizar'),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('checkbox', { name: /Reservas de mesas/ }),
+    ).toBeEnabled()
+    expect(screen.getByLabelText('Tu selección')).toHaveTextContent('220.000')
+  })
+  it('requires a receipt for a priced plan while A medida stays a quote', async () => {
+    setup()
+    openPlan(0)
+    fireEvent.click(screen.getByRole('button', { name: 'Seguir sin extras' }))
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Completar solicitud' }),
+      ).toBeEnabled(),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Completar solicitud' }))
+    for (const [label, value] of [
+      ['Tu nombre', 'Nicolás Pérez'],
+      ['Correo electrónico', 'nico@example.com'],
+      ['WhatsApp', '11 5555 4444'],
+    ] as const)
+      fireEvent.change(screen.getByLabelText(label), { target: { value } })
+    fireEvent.click(screen.getByRole('button', { name: 'Ver resumen' }))
+    expect(screen.getByText(planContent.form.receipt.error)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar configurador' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Consultar proyecto' }))
+    expect(screen.getByLabelText('¿Qué necesitás?')).toBeInTheDocument()
+    expect(
+      screen.queryByLabelText('Comprobante de la transferencia'),
+    ).not.toBeInTheDocument()
+  })
+  it('resets incompatible selections when another plan opens', () => {
+    setup()
+    openPlanOptions(0)
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /^Reservas de mesas/ }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar configurador' }))
+    openPlanOptions(1)
+    expect(
+      screen.queryByRole('checkbox', { name: /^Reservas de mesas/ }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('checkbox', {
+        name: /Panel autoadministrable sin carga de fotos/,
+      }),
+    ).not.toBeChecked()
+  })
+  it('keeps extras and contact data when moving back through a priced request', async () => {
+    setup()
+    openPlanOptions(0)
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /^Reservas de mesas/ }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Completar solicitud' }))
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Completar solicitud' }),
+      ).toBeEnabled(),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Completar solicitud' }))
+    fireEvent.change(screen.getByLabelText('Tu nombre'), {
+      target: { value: 'Nicolás Pérez' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Volver' }))
+    expect(screen.getByLabelText('Tu selección')).toHaveTextContent('380.000')
+    fireEvent.click(screen.getByRole('button', { name: 'Volver' }))
+    expect(
+      screen.getByRole('checkbox', { name: /^Reservas de mesas/ }),
+    ).toBeChecked()
+    fireEvent.click(screen.getByRole('button', { name: 'Completar solicitud' }))
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Completar solicitud' }),
+      ).toBeEnabled(),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Completar solicitud' }))
+    expect(screen.getByLabelText('Tu nombre')).toHaveValue('Nicolás Pérez')
+  })
+  it('keeps A medida as a quote and disables sending without Turnstile', () => {
     setup()
     fireEvent.click(screen.getByRole('button', { name: 'Consultar proyecto' }))
-    const dialog = screen.getByRole('dialog')
     for (const [label, value] of [
       ['Tu nombre', 'Nicolás Pérez'],
       ['Negocio o actividad', 'Estudio Sur'],
-      ['Correo electrónico', 'nico@estudio.com'],
+      ['Correo electrónico', 'nico@example.com'],
       ['WhatsApp', '11 5555 4444'],
-      ['¿Qué necesitás?', 'Una solución a medida'],
-    ] as const) {
-      fireEvent.change(within(dialog).getByLabelText(label), {
-        target: { value },
-      })
-    }
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Ver resumen' }))
-    expect(within(dialog).getAllByText('A cotizar')).toHaveLength(2)
+      ['¿Qué necesitás?', 'Un sistema particular.'],
+    ] as const)
+      fireEvent.change(screen.getByLabelText(label), { target: { value } })
+    fireEvent.click(screen.getByRole('button', { name: 'Ver resumen' }))
+    expect(screen.getByRole('dialog')).toHaveTextContent('A cotizar')
+    expect(screen.getByRole('dialog')).not.toHaveTextContent('Seña del 50 %')
     expect(
-      within(dialog).getByRole('button', { name: 'Enviar consulta' }),
+      screen.getByRole('button', { name: 'Enviar consulta' }),
     ).toBeDisabled()
-    expect(within(dialog).getByRole('status')).toHaveTextContent(
-      'El envío todavía no está habilitado.',
+    expect(screen.getByRole('status')).toHaveTextContent(
+      planContent.submission.unavailable,
     )
   })
-  it('closes with the icon button and restores focus', async () => {
+  it('closes when the backdrop is clicked', () => {
     setup()
-    const opener = screen.getAllByRole('button', {
-      name: 'Personalizar plan',
-    })[0]!
+    openPlan(0)
+    fireEvent.click(screen.getByRole('dialog'), {
+      clientX: -1,
+      clientY: -1,
+    })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+  it('closes on button and Escape and restores focus', async () => {
+    setup()
+    const opener = screen.getAllByRole('button', { name: 'Comprar ahora' })[0]!
     opener.focus()
     fireEvent.click(opener)
-    expect(
-      screen.getByRole('heading', { name: 'Plan gastronómico' }),
-    ).toHaveFocus()
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar configurador' }))
     await waitFor(() =>
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
     )
     expect(opener).toHaveFocus()
-    expect(document.body.style.overflow).toBe('')
-  })
-  it('closes with Escape and backdrop', () => {
-    setup()
-    openPlan(0)
-    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     openPlan(1)
-    fireEvent.click(screen.getByRole('dialog'))
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })

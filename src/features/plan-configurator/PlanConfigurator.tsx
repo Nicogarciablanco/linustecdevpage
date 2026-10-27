@@ -2,7 +2,7 @@ import { ArrowRight, Close } from '@carbon/icons-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { MouseEvent } from 'react'
 import { PrimaryButton } from '../../components/ui/Button'
-import { planContent } from '../../data/plans'
+import { calculateBudgetWithCoupon, planContent } from '../../data/plans'
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 import type { Plan, PlanRequestDraft, RequestContact } from '../../types/plan'
 import type { SubmissionErrorCode } from '../../types/consultation'
@@ -25,7 +25,7 @@ import {
   StepList,
 } from './PlanConfigurator.styles'
 
-type Step = 'options' | 'details' | 'extraPrompt' | 'review'
+type Step = 'options' | 'extraPrompt' | 'quote' | 'details' | 'review'
 const tokenMaxAgeMs = 285_000
 type VerificationToken = { value: string; receivedAt: number }
 const emptyContact: RequestContact = {
@@ -37,34 +37,33 @@ const emptyContact: RequestContact = {
   domain: 'register',
 }
 
-function validate(contact: RequestContact): FormErrors {
+function validate(contact: RequestContact, custom: boolean): FormErrors {
   const errors: FormErrors = {}
   if (!contact.name.trim()) errors.name = planContent.form.name.error
-  if (!contact.business.trim())
+  if (custom && !contact.business.trim())
     errors.business = planContent.form.business.error
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.email.trim()))
     errors.email = planContent.form.email.error
   if (contact.phone.replace(/\D/g, '').length < 8)
     errors.phone = planContent.form.phone.error
-  if (!contact.message.trim()) errors.message = planContent.form.message.error
+  if (custom && !contact.message.trim())
+    errors.message = planContent.form.message.error
   return errors
 }
 
 export function PlanConfigurator({
   plan,
-  entry = 'customize',
   opener,
   onClose,
 }: {
   plan: Plan
-  entry?: 'base' | 'customize'
   opener: HTMLButtonElement | null
   onClose: () => void
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const [step, setStep] = useState<Step>(
-    plan.id === 'medida' || entry === 'base' ? 'details' : 'options',
+    plan.id === 'medida' ? 'details' : 'extraPrompt',
   )
   const [fromPrompt, setFromPrompt] = useState(false)
   const [selectedChoices, setSelectedChoices] = useState<string[]>(
@@ -72,6 +71,10 @@ export function PlanConfigurator({
   )
   const [selectedExtras, setSelectedExtras] = useState<string[]>([])
   const [contact, setContact] = useState<RequestContact>(emptyContact)
+  const [receipt, setReceipt] = useState<File | null>(null)
+  const [couponInput, setCouponInput] = useState('')
+  const [couponCode, setCouponCode] = useState('')
+  const [quoteError, setQuoteError] = useState('')
   const [errors, setErrors] = useState<FormErrors>({})
   const [submission, setSubmission] = useState<
     'idle' | 'sending' | 'sent' | 'error'
@@ -113,6 +116,7 @@ export function PlanConfigurator({
     selectedChoiceIds: selectedChoices,
     selectedExtraIds: selectedExtras,
     contact,
+    ...(couponCode ? { couponCode } : {}),
     status: 'draft',
   }
 
@@ -138,8 +142,25 @@ export function PlanConfigurator({
     if (!sending.current) onClose()
   }
 
+  function applyCoupon() {
+    const next = couponInput.trim()
+    setCouponCode('')
+    setQuoteError('')
+    if (!next) return
+    if (!calculateBudgetWithCoupon(plan, selectedExtras, next)) {
+      setQuoteError(planContent.couponInvalid)
+      return
+    }
+    setCouponCode(next)
+  }
+
   async function send() {
     if (sending.current || submission === 'sent' || !siteKey) return
+    if (plan.id !== 'medida' && !receipt) {
+      setSubmissionError('invalid_receipt')
+      setStep('details')
+      return
+    }
     const currentToken = tokenRef.current
     if (!currentToken) return
     if (Date.now() - currentToken.receivedAt >= tokenMaxAgeMs) {
@@ -160,6 +181,7 @@ export function PlanConfigurator({
         requestId.current,
         currentToken.value,
         abort.signal,
+        receipt,
       )
       if (mounted.current) setSubmission('sent')
     } catch (error) {
@@ -191,21 +213,27 @@ export function PlanConfigurator({
 
   function goNext() {
     if (step === 'options') {
-      setStep(fromPrompt ? 'review' : 'details')
+      setStep('quote')
+      return
+    }
+    if (step === 'extraPrompt') {
+      setStep('quote')
+      return
+    }
+    if (step === 'quote') {
+      setStep('details')
       return
     }
     if (step === 'details') {
-      const nextErrors = validate(contact)
+      const nextErrors = validate(contact, plan.id === 'medida')
+      if (plan.id !== 'medida' && !receipt)
+        nextErrors.receipt = planContent.form.receipt.error
       setErrors(nextErrors)
       const first = Object.keys(nextErrors)[0]
       if (first) {
         document.getElementById(`request-${first}`)?.focus()
         return
       }
-      setStep(entry === 'base' && !custom ? 'extraPrompt' : 'review')
-      return
-    }
-    if (step === 'extraPrompt') {
       setStep('review')
       return
     }
@@ -218,20 +246,15 @@ export function PlanConfigurator({
         { id: 'details', name: `01 · ${planContent.steps.customDetails}` },
         { id: 'review', name: `02 · ${planContent.steps.review}` },
       ]
-    : entry === 'base'
-      ? [
-          { id: 'details', name: `01 · ${planContent.steps.details}` },
-          {
-            id: fromPrompt ? 'options' : 'extraPrompt',
-            name: `02 · ${planContent.steps.options}`,
-          },
-          { id: 'review', name: `03 · ${planContent.steps.review}` },
-        ]
-      : [
-          { id: 'options', name: `01 · ${planContent.steps.options}` },
-          { id: 'details', name: `02 · ${planContent.steps.details}` },
-          { id: 'review', name: `03 · ${planContent.steps.review}` },
-        ]
+    : [
+        {
+          id: fromPrompt ? 'options' : 'extraPrompt',
+          name: `01 · ${planContent.steps.options}`,
+        },
+        { id: 'quote', name: `02 · ${planContent.steps.quote}` },
+        { id: 'details', name: `03 · ${planContent.steps.details}` },
+        { id: 'review', name: `04 · ${planContent.steps.review}` },
+      ]
 
   return (
     <Dialog
@@ -304,13 +327,27 @@ export function PlanConfigurator({
                         : current.filter((item) => item !== id),
                   )
                 }
-                onExtraChange={(id, checked) =>
-                  setSelectedExtras((current) =>
-                    checked
-                      ? [...current, id]
-                      : current.filter((item) => item !== id),
-                  )
-                }
+                onExtraChange={(id, checked) => {
+                  setCouponCode('')
+                  setCouponInput('')
+                  setQuoteError('')
+                  setSelectedExtras((current) => {
+                    const group = plan.extras.find(
+                      (extra) => extra.id === id,
+                    )?.group
+                    return checked
+                      ? [
+                          ...current.filter(
+                            (item) =>
+                              !group ||
+                              plan.extras.find((extra) => extra.id === item)
+                                ?.group !== group,
+                          ),
+                          id,
+                        ]
+                      : current.filter((item) => item !== id)
+                  })
+                }}
               />
             </div>
             <SelectionSummary plan={plan} request={request} />
@@ -322,6 +359,9 @@ export function PlanConfigurator({
             errors={errors}
             setContact={setContact}
             setErrors={setErrors}
+            requiresReceipt={!custom}
+            receipt={receipt}
+            onReceipt={setReceipt}
           />
         )}
         {step === 'extraPrompt' && (
@@ -339,11 +379,42 @@ export function PlanConfigurator({
             </SecondaryButton>
           </div>
         )}
+        {step === 'quote' && (
+          <div>
+            <SelectionSummary plan={plan} request={request} />
+            <div className="coupon-field">
+              <label htmlFor="coupon-code">{planContent.couponLabel}</label>
+              <input
+                id="coupon-code"
+                value={couponInput}
+                maxLength={32}
+                autoComplete="off"
+                onChange={(event) =>
+                  setCouponInput(event.target.value.toUpperCase())
+                }
+              />
+              <SecondaryButton type="button" onClick={applyCoupon}>
+                {planContent.couponApply}
+              </SecondaryButton>
+            </div>
+            {quoteError && <p role="alert">{quoteError}</p>}
+            <p>
+              {planContent.paymentHeading}:{' '}
+              <strong>{planContent.paymentAlias}</strong>
+            </p>
+            <p>{planContent.paymentNote}</p>
+          </div>
+        )}
         {step === 'review' && (
           <>
-            <RequestSummary plan={plan} request={request} />
+            <RequestSummary plan={plan} request={request} receipt={receipt} />
+            {!custom && <p>{planContent.paymentNote}</p>}
             {submission === 'sent' ? (
-              <p role="status">{planContent.submission.success}</p>
+              <p role="status">
+                {custom
+                  ? planContent.submission.customSuccess
+                  : planContent.submission.success}
+              </p>
             ) : (
               <div className="submission-verification">
                 {siteKey ? (
@@ -386,14 +457,16 @@ export function PlanConfigurator({
           <p>
             {step === 'review'
               ? submission === 'sent'
-                ? planContent.submission.sent
+                ? custom
+                  ? planContent.submission.customSent
+                  : planContent.submission.sent
                 : planContent.reviewNote
               : custom
                 ? planContent.customNote
                 : planContent.standardNote}
           </p>
           <div>
-            {step !== (custom || entry === 'base' ? 'details' : 'options') &&
+            {step !== (custom ? 'details' : 'extraPrompt') &&
               submission !== 'sent' && (
                 <SecondaryButton
                   type="button"
@@ -403,16 +476,16 @@ export function PlanConfigurator({
                     updateToken('')
                     setStep(
                       step === 'review'
-                        ? custom || entry !== 'base'
-                          ? 'details'
-                          : fromPrompt
-                            ? 'options'
-                            : 'extraPrompt'
-                        : step === 'options' && fromPrompt
-                          ? 'extraPrompt'
-                          : step === 'extraPrompt'
+                        ? 'details'
+                        : step === 'details'
+                          ? custom
                             ? 'details'
-                            : 'options',
+                            : 'quote'
+                          : step === 'quote'
+                            ? fromPrompt
+                              ? 'options'
+                              : 'extraPrompt'
+                            : 'extraPrompt',
                     )
                   }}
                   disabled={submission === 'sending'}
@@ -430,20 +503,22 @@ export function PlanConfigurator({
               }
             >
               {step === 'options'
-                ? fromPrompt
-                  ? planContent.dialog.reviewNext
-                  : planContent.dialog.next
+                ? planContent.dialog.next
                 : step === 'details'
-                  ? entry === 'base' && !custom
-                    ? planContent.dialog.next
-                    : planContent.dialog.reviewNext
+                  ? planContent.dialog.reviewNext
                   : step === 'extraPrompt'
                     ? planContent.skipExtras
-                    : submission === 'sent'
-                      ? planContent.submission.sent
-                      : submission === 'sending'
-                        ? planContent.submission.sending
-                        : planContent.submission.send}
+                    : step === 'quote'
+                      ? planContent.dialog.next
+                      : submission === 'sent'
+                        ? custom
+                          ? planContent.submission.customSent
+                          : planContent.submission.sent
+                        : submission === 'sending'
+                          ? planContent.submission.sending
+                          : custom
+                            ? planContent.submission.customSend
+                            : planContent.submission.send}
               {submission !== 'sent' && (
                 <ArrowRight size={16} aria-hidden="true" />
               )}

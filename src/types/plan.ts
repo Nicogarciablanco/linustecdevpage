@@ -1,9 +1,6 @@
 export type PlanId = 'gastronomico' | 'servicios' | 'institucional' | 'medida'
 
-export type Price =
-  | { status: 'pending' }
-  | { status: 'quote' }
-  | { status: 'defined'; amount: number }
+export type Price = { status: 'quote' } | { status: 'defined'; amount: number }
 
 export interface PlanInclusion {
   title: string
@@ -18,7 +15,8 @@ export interface PlanChoice {
 
 export interface PlanExtra extends PlanChoice {
   description: string
-  price: Price
+  price: Extract<Price, { status: 'defined' }>
+  group?: 'panel' | 'tables'
 }
 
 export interface Plan {
@@ -57,5 +55,6 @@ export interface PlanRequestDraft {
   selectedChoiceIds: string[]
   selectedExtraIds: string[]
   contact: RequestContact
+  couponCode?: string
   status: 'draft'
 }

@@ -20,6 +20,25 @@ export const Dialog = styled.dialog`
 
 export const DialogContent = styled.div`
   min-width: 0;
+  .coupon-field {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin: 20px 0;
+  }
+  .coupon-field label {
+    width: 100%;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .coupon-field input {
+    min-width: 0;
+    flex: 1;
+    padding: 11px;
+    border: 1px solid #bcc8c2;
+    border-radius: 9px;
+  }
   .submission-verification {
     margin-top: 20px;
     font-size: 13px;
@@ -206,7 +225,7 @@ export const SummaryPanel = styled.aside`
     gap: 12px;
     margin-bottom: 10px;
     color: ${({ theme }) => theme.colors.textSecondary};
-    font-size: 11px;
+    font-size: 13px;
     line-height: 1.5;
   }
   .row strong {
@@ -219,14 +238,26 @@ export const SummaryPanel = styled.aside`
     padding-top: 15px;
     border-top: 1px solid #c5cfcb;
   }
-  .total small {
-    display: block;
-    margin-bottom: 7px;
-    font-size: 12px;
+  .grand-total {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 700;
   }
-  .total strong {
+  .grand-total strong {
     font-size: 27px;
-    letter-spacing: -0.06em;
+    letter-spacing: -0.03em;
+  }
+  .deposit strong {
+    font-size: 16px;
+  }
+  .deposit-note {
+    margin-top: 0;
+    font-size: 12px;
   }
   p {
     margin: 14px 0 0;
