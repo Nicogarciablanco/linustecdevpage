@@ -33,8 +33,9 @@ export function Hero({ sticky }: { sticky: boolean }) {
         </HeroTitle>
         <HeroAside>
           <p>
-            Diseñamos y desarrollamos experiencias digitales rápidas, claras y
-            listas para convertir visitas en consultas o pedidos.
+            Diseñamos y desarrollamos experiencias digitales que reflejan la
+            personalidad de tu negocio, rápidas, claras y listas para convertir
+            visitas en consultas o pedidos.
           </p>
           {!sticky && (
             <HeroActions>

@@ -26,7 +26,7 @@ const env: ConsultationEnv = {
 const payload = () => ({
   requestId: 'ce479da2-acda-4d98-82fa-91da7390a281',
   planId: 'gastronomico',
-  selectedChoiceIds: ['retiro'],
+  selectedChoiceIds: ['menu-local', 'pedidos'],
   selectedExtraIds: ['tables'],
   receipt: { mediaType: 'application/pdf', content: btoa('%PDF-1.4\n') },
   contact: {
@@ -239,7 +239,7 @@ describe('consultation server', () => {
   it.each([
     { planId: 'hotel' },
     { selectedExtraIds: ['catalogpanel'] },
-    { selectedChoiceIds: ['retiro', 'retiro'] },
+    { selectedChoiceIds: ['menu-local', 'menu-local'] },
     {
       contact: {
         ...payload().contact,

@@ -216,16 +216,16 @@ export const plans: Plan[] = [
       'Para restaurantes, cafeterías y locales de comida que quieren mostrar su carta y recibir pedidos.',
     choices: [
       {
-        id: 'retiro',
-        name: 'Retiro en el local',
+        id: 'menu-local',
+        name: 'Carta para el local',
       },
       {
-        id: 'delivery',
-        name: 'Delivery',
+        id: 'pedidos',
+        name: 'Pedidos para retiro o delivery',
       },
     ],
     choiceMode: 'multiple',
-    defaultChoices: ['retiro'],
+    defaultChoices: ['menu-local', 'pedidos'],
     name: 'Plan gastronómico',
     summary:
       'Una carta propia para que tus clientes vean el menú, armen un pedido y lo envíen a tu WhatsApp.',
@@ -247,9 +247,9 @@ export const plans: Plan[] = [
           'Cada producto puede tener nombre, descripción, precio y una imagen que nos proporciones.',
       },
       {
-        title: 'Carta digital y QR para compartir',
+        title: 'Carta para el local con QR digital',
         description:
-          'El menú se consulta desde un enlace o un QR listo para compartir o imprimir.',
+          'Tus clientes consultan el menú en el local desde un QR; también pueden abrirlo desde un enlace.',
       },
       {
         title: 'Carrito y pedido ordenado por WhatsApp',
@@ -257,9 +257,9 @@ export const plans: Plan[] = [
           'El cliente elige cantidades, agrega una observación general y envía el pedido ordenado al local.',
       },
       {
-        title: 'Retiro y delivery simple',
+        title: 'Pedidos para retiro o delivery',
         description:
-          'Configuramos las modalidades que uses, los datos del cliente y las condiciones de envío acordadas.',
+          'Configuramos retiro o delivery según trabajes, con los datos del cliente y las condiciones de envío acordadas.',
       },
       {
         title: 'Contacto y datos de transferencia',
