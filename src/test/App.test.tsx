@@ -571,6 +571,22 @@ describe('landing', () => {
     expect(screen.getByLabelText('Tu selección')).toHaveTextContent('99.000')
     expect(fetcher).not.toHaveBeenCalled()
   })
+  it('applies the Montañita Linus Tec 20% test coupon', () => {
+    coupons.push({ code: 'Montañita Linus Tec', type: 'percent', value: 20 })
+    setup()
+    openPlan(0)
+    fireEvent.click(screen.getByRole('button', { name: 'Seguir sin extras' }))
+    fireEvent.change(screen.getByLabelText('Cupón de descuento'), {
+      target: { value: 'Montañita Linus Tec' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Aplicar' }))
+    const selection = screen.getByLabelText('Tu selección')
+    expect(selection).toHaveTextContent('MONTAÑITA LINUS TEC')
+    expect(selection).toHaveTextContent('−$ 44.000')
+    expect(selection).toHaveTextContent('$ 176.000')
+    expect(selection).toHaveTextContent('$ 88.000')
+    expect(fetch).not.toHaveBeenCalled()
+  })
   it('rejects an unknown coupon while keeping the base budget available', () => {
     setup()
     openPlan(0)

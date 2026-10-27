@@ -558,12 +558,20 @@ export function calculateBudget(
   }
 }
 
-// Agregar aquí los códigos cuando LinusTec los defina. Los importes son públicos.
+// Los cupones son públicos y se aplican localmente; editar aquí.
 export const coupons: {
   code: string
   type: 'percent' | 'fixed'
   value: number
-}[] = []
+}[] = [{ code: 'Montañita Linus Tec', type: 'percent', value: 20 }]
+
+function normalizeCouponCode(code: string) {
+  return code
+    .normalize('NFC')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLocaleUpperCase('es-AR')
+}
 
 export function calculateBudgetWithCoupon(
   plan: Plan,
@@ -572,7 +580,10 @@ export function calculateBudgetWithCoupon(
 ) {
   const base = calculateBudget(plan, selectedExtraIds)
   if (!base || !couponCode) return base
-  const coupon = coupons.find((item) => item.code === couponCode)
+  const normalizedCode = normalizeCouponCode(couponCode)
+  const coupon = coupons.find(
+    (item) => normalizeCouponCode(item.code) === normalizedCode,
+  )
   if (!coupon || !Number.isInteger(coupon.value) || coupon.value <= 0)
     return null
   const discount =

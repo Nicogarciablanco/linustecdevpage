@@ -8,7 +8,7 @@ El responsable indicó que la configuración externa está en producción. Esta 
 
 ## Presupuesto local y transferencia manual — 27 de octubre de 2026
 
-El configurador suma plan y extras con `calculateBudgetWithCoupon` de `src/data/plans.ts` y muestra la seña del 50 % sin llamar al servidor. «Aplicar» valida los cupones desde `coupons` en el mismo archivo, lista inicialmente vacía; los códigos futuros serán públicos. Se retiraron `/api/quote`, `COUPONS_JSON` y sus dependencias. El servidor repite la cuenta al recibir la solicitud y no confía en importes enviados por el navegador.
+El configurador suma plan y extras con `calculateBudgetWithCoupon` de `src/data/plans.ts` y muestra la seña del 50 % sin llamar al servidor. «Aplicar» valida los cupones desde `coupons` en el mismo archivo; el cupón de prueba `Montañita Linus Tec` aplica 20 % y es público. Se retiraron `/api/quote`, `COUPONS_JSON` y sus dependencias. El servidor repite la cuenta al recibir la solicitud y no confía en importes enviados por el navegador.
 
 La transferencia muestra únicamente el alias público `nicojngbmp`, editable en `planContent.paymentAlias`. El comprobante se adjunta en el formulario de los planes con precio y conserva la validación PDF/PNG/JPEG de hasta 2 MB en cliente y servidor. Para habilitar un envío real siguen faltando la configuración privada de correo, Turnstile y Upstash; recibir el comprobante no acredita el pago. Los detalles de activación están en `docs/CONSULTATIONS.md`.
 
@@ -26,7 +26,7 @@ El configurador ofrece base o personalización, cotiza extras definidos y excluy
 
 El alias de transferencia indicado por el responsable es `nicojngbmp`; quedó en la fuente compartida `src/data/plans.ts`. Falta la configuración de Cloudflare, Resend, Turnstile y Upstash antes de habilitar un envío real. Los pasos están en `docs/CONSULTATIONS.md`. Las secciones siguientes son historial de iteraciones anteriores y pueden describir un flujo reemplazado por este apartado.
 
-El campo de cupón mantiene el texto como borrador: no hay consultas al escribir ni al pulsar «Aplicar». La lista local está vacía hasta que el responsable facilite los códigos.
+El campo de cupón mantiene el texto como borrador: no hay consultas al escribir ni al pulsar «Aplicar». Los códigos y descuentos se editan en la lista local `coupons` de `src/data/plans.ts`.
 
 La variante de reservas de mesas es una oferta comercial calculable, no una funcionalidad ya desarrollada dentro de esta web. Los extras sin importe definido se retiraron en la actualización posterior descrita arriba.
 

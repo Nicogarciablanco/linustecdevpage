@@ -98,7 +98,7 @@ const ip = '192.0.2.1'
 
 describe('consultation server', () => {
   it('validates configured coupons on submission and recalculates the receipt email', async () => {
-    coupons.push({ code: 'TEST10', type: 'percent', value: 10 })
+    coupons.push({ code: 'Montañita Linus Tec', type: 'percent', value: 20 })
     const rejected = await handleConsultation(
       request({ ...payload(), couponCode: 'UNKNOWN' }),
       env,
@@ -112,7 +112,7 @@ describe('consultation server', () => {
       request({
         ...payload(),
         selectedExtraIds: ['tableselection'],
-        couponCode: 'TEST10',
+        couponCode: 'MONTAÑITA LINUS TEC',
         total: 1,
       }),
       env,
@@ -124,7 +124,7 @@ describe('consultation server', () => {
       request({
         ...payload(),
         selectedExtraIds: ['tableselection'],
-        couponCode: 'TEST10',
+        couponCode: 'MONTAÑITA LINUS TEC',
       }),
       env,
       ip,
@@ -135,9 +135,9 @@ describe('consultation server', () => {
       fetcher.mock.calls.find(([url]) => String(url).includes('resend'))![1]!
         .body as string,
     )
-    expect(mail.text).toContain('TEST10')
-    expect(mail.text).toContain('432.000')
-    expect(mail.text).toContain('216.000')
+    expect(mail.text).toContain('MONTAÑITA LINUS TEC')
+    expect(mail.text).toContain('384.000')
+    expect(mail.text).toContain('192.000')
   })
   it('rejects missing, forged and oversized receipts before verification', async () => {
     for (const receipt of [

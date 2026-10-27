@@ -150,7 +150,7 @@ export function validatePayload(value: unknown): ConsultationPayload | null {
     if (
       value.couponCode !== undefined &&
       (typeof value.couponCode !== 'string' ||
-        !/^[A-Z0-9_-]{1,32}$/.test(value.couponCode))
+        !/^[\p{L}\p{N}_ -]{1,32}$/u.test(value.couponCode))
     )
       return null
   }
